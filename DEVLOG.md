@@ -21,3 +21,9 @@ have the most inclusive shade range.
 
 **First milestone:** Running FastAPI server + MediaPipe pixel extraction working 
 end to end.
+
+## [April 1 2026] — Issue 1 Complete: FastAPI Skeleton
+
+Server is running on port 8000. Health check and placeholder /analyze 
+route are working. CORS set up with wildcard for now, will tighten later. 
+Dependencies installed in .venv.
