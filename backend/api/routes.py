@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from detection.face_detection import extract_skin_pixels
+from detection.monk_classifier import classify_monk
 
 router = APIRouter()
 
@@ -18,7 +19,14 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     image_bytes = await file.read()
     pixels = extract_skin_pixels(image_bytes)
 
+    if not pixels:
+        raise HTTPException(status_code=422, detail="No face detected in the image.")
+
+    result = classify_monk(pixels)
+
     return {
         "pixel_count": len(pixels),
-        "sample_pixels": pixels[:5],
+        "monk_scale": result["monk_scale"],
+        "undertone": result["undertone"],
+        "avg_hex": result["avg_hex"],
     }

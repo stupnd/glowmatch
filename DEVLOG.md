@@ -34,3 +34,14 @@ Pixel extraction working. Had to pin mediapipe==0.10.9 since 0.10.33
 dropped .solutions support. 21 landmark points sampled across cheeks 
 and forehead using 7x7 patch averaging. Verified with real photo — 
 getting clean RGB tuples back.
+
+## [April 1 2026] — Issue 3 Complete: Monk Skin Tone Classifier
+
+Monk classifier working. Uses Euclidean distance in RGB space against 
+the 10 official Monk hex values. Undertone detection combines red/blue 
+ratio + HSV hue for more robustness — ±0.12 neutral band avoids forcing 
+everything into warm/cool. 422 returned when no face detected.
+
+Smoke test results look reasonable across the tone range. One edge case: 
+deep dark pixels with low saturation trend warm — worth revisiting later 
+with more test images.
