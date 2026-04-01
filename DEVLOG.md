@@ -45,3 +45,8 @@ everything into warm/cool. 422 returned when no face detected.
 Smoke test results look reasonable across the tone range. One edge case: 
 deep dark pixels with low saturation trend warm — worth revisiting later 
 with more test images.
+
+Known issue: warm lighting conditions skew undertone detection toward 
+"warm" even for cool/neutral skin tones. Image preprocessing 
+(white balance normalization) or switching to LAB color space for 
+undertone detection would improve accuracy. Fix planned post-MVP.
