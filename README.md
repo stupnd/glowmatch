@@ -13,7 +13,7 @@ glowmatch/
 └── data/            # shade datasets, sample images
 ```
 
-# GlowMatch 💄
+# GlowMatch
 
 GlowMatch is an AI-powered makeup shade recommender that detects your skin tone 
 from a photo and matches you to real foundation shades.
