@@ -27,3 +27,10 @@ end to end.
 Server is running on port 8000. Health check and placeholder /analyze 
 route are working. CORS set up with wildcard for now, will tighten later. 
 Dependencies installed in .venv.
+
+## [April 1 2026] — Issue 2 Complete: MediaPipe Face Mesh + Pixel Sampling
+
+Pixel extraction working. Had to pin mediapipe==0.10.9 since 0.10.33 
+dropped .solutions support. 21 landmark points sampled across cheeks 
+and forehead using 7x7 patch averaging. Verified with real photo — 
+getting clean RGB tuples back.
