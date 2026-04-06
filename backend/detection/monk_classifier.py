@@ -1,9 +1,10 @@
 """Monk Skin Tone Scale classification and undertone detection."""
 
-import colorsys
+import cv2
+import numpy as np
 
 # Official Monk Skin Tone Scale hex values (MST-1 = lightest, MST-10 = darkest).
-_MONK_SCALE: list[tuple[str, tuple[int, int, int]]] = [
+_MONK_SCALE_RGB: list[tuple[str, tuple[int, int, int]]] = [
     ("MST-1",  (0xF6, 0xED, 0xE4)),
     ("MST-2",  (0xF3, 0xE7, 0xDB)),
     ("MST-3",  (0xF7, 0xEA, 0xD0)),
@@ -37,8 +38,9 @@ def classify_monk(pixels: list[tuple[int, int, int]]) -> dict:
         return {}
 
     avg_rgb = _average_rgb(pixels)
-    monk_label = _nearest_monk(avg_rgb)
-    undertone = _detect_undertone(avg_rgb)
+    avg_lab = _rgb_to_lab_triple(*avg_rgb)
+    monk_label = _nearest_monk(avg_lab)
+    undertone = _detect_undertone(avg_lab)
     avg_hex = "#{:02x}{:02x}{:02x}".format(*avg_rgb)
 
     return {
@@ -53,6 +55,21 @@ def classify_monk(pixels: list[tuple[int, int, int]]) -> dict:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+def _rgb_to_lab_triple(r: int, g: int, b: int) -> tuple[float, float, float]:
+    """Convert a single RGB triplet to OpenCV's 8-bit LAB encoding.
+
+    OpenCV encodes LAB as uint8 where:
+      L  → [0, 255]  (maps to CIE L* 0–100)
+      a* → [0, 255]  (neutral at 128; >128 = red/magenta, <128 = green)
+      b* → [0, 255]  (neutral at 128; >128 = yellow,       <128 = blue)
+    """
+    # OpenCV expects BGR channel order.
+    pixel = np.array([[[b, g, r]]], dtype=np.uint8)
+    lab = cv2.cvtColor(pixel, cv2.COLOR_BGR2LAB)
+    L, a, b_val = lab[0, 0]
+    return (float(L), float(a), float(b_val))
+
+
 def _average_rgb(pixels: list[tuple[int, int, int]]) -> tuple[int, int, int]:
     n = len(pixels)
     r = round(sum(p[0] for p in pixels) / n)
@@ -61,36 +78,45 @@ def _average_rgb(pixels: list[tuple[int, int, int]]) -> tuple[int, int, int]:
     return (r, g, b)
 
 
-def _squared_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> int:
+def _lab_squared_distance(
+    a: tuple[float, float, float],
+    b: tuple[float, float, float],
+) -> float:
     return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
 
 
-def _nearest_monk(rgb: tuple[int, int, int]) -> str:
-    return min(_MONK_SCALE, key=lambda entry: _squared_distance(rgb, entry[1]))[0]
+def _nearest_monk(lab: tuple[float, float, float]) -> str:
+    return min(_MONK_SCALE_LAB, key=lambda entry: _lab_squared_distance(lab, entry[1]))[0]
 
 
-def _detect_undertone(rgb: tuple[int, int, int]) -> str:
-    """Derive undertone from hue and the red-vs-blue channel ratio.
+def _detect_undertone(lab: tuple[float, float, float]) -> str:
+    """Derive undertone from the LAB a* and b* channels.
 
-    Strategy:
-    - Convert to HSV; hue in degrees helps anchor warm vs cool.
-    - Red/blue ratio amplifies the signal on darker tones where hue
-      differences are compressed.
-    - Neutral band: ratio within ±0.06 of 1.0 AND hue outside the
-      clearly warm (0-50°) or cool (180-270°) ranges.
+    In OpenCV's 8-bit LAB encoding, 128 is the neutral midpoint:
+      b_shift > 0  →  yellow/golden push  →  warm
+      a_shift > 0  →  red/pink push       →  cool
+
+    A 6-unit margin keeps borderline colours in the neutral band rather
+    than misclassifying them due to minor sensor noise.
     """
-    r, g, b = rgb
-    h_norm, _s, _v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-    hue = h_norm * 360  # 0-360°
+    _L, a, b = lab
+    a_shift = a - 128.0  # positive = red-pink (cool)
+    b_shift = b - 128.0  # positive = yellow-golden (warm)
 
-    rb_ratio = r / b if b > 0 else float("inf")
+    _THRESHOLD = 6.0
 
-    # Clear warm signal: reddish / yellowish hues + red dominance.
-    if rb_ratio > 1.12 or (0 <= hue <= 50):
+    if b_shift - a_shift > _THRESHOLD:
         return "warm"
-
-    # Clear cool signal: bluish / purplish hues + blue dominance.
-    if rb_ratio < 0.88 or (180 <= hue <= 270):
+    if a_shift - b_shift > _THRESHOLD:
         return "cool"
-
     return "neutral"
+
+
+# ---------------------------------------------------------------------------
+# Deferred initialisation — build the LAB palette after helpers are defined.
+# ---------------------------------------------------------------------------
+
+_MONK_SCALE_LAB = [
+    (label, _rgb_to_lab_triple(r, g, b))
+    for label, (r, g, b) in _MONK_SCALE_RGB
+]

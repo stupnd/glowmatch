@@ -50,3 +50,9 @@ Known issue: warm lighting conditions skew undertone detection toward
 "warm" even for cool/neutral skin tones. Image preprocessing 
 (white balance normalization) or switching to LAB color space for 
 undertone detection would improve accuracy. Fix planned post-MVP.
+
+April 5th 2026
+
+Test results: MST detection accurate for medium-deep range. 
+Fails on very fair skin — warm lighting + makeup skew results.
+Webp format not supported — needs content type fix.

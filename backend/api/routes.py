@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from detection.face_detection import extract_skin_pixels
 from detection.monk_classifier import classify_monk
+from detection.shade_matcher import match_shades
 
 router = APIRouter()
 
@@ -13,7 +14,8 @@ async def health() -> dict[str, str]:
 
 @router.post("/analyze")
 async def analyze(file: UploadFile = File(...)) -> dict:
-    if not file.content_type or not file.content_type.startswith("image/"):
+    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    if not file.content_type or file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
 
     image_bytes = await file.read()
@@ -24,9 +26,12 @@ async def analyze(file: UploadFile = File(...)) -> dict:
 
     result = classify_monk(pixels)
 
+    matched_shades = match_shades(result["monk_scale"], result["undertone"])
+
     return {
         "pixel_count": len(pixels),
         "monk_scale": result["monk_scale"],
         "undertone": result["undertone"],
         "avg_hex": result["avg_hex"],
+        "matched_shades": matched_shades,
     }
