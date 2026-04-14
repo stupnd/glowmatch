@@ -199,7 +199,7 @@ export default function UploadScreen({ onUpload }: Props) {
               <motion.div
                 className="relative rounded-3xl p-10 cursor-pointer"
                 style={{
-                  background: "rgba(255,255,255,0.6)",
+                  background: "rgba(250,247,242,0.75)",
                   backdropFilter: "blur(12px)",
                   WebkitBackdropFilter: "blur(12px)",
                   border: "1px solid rgba(255,255,255,0.4)",
@@ -207,7 +207,7 @@ export default function UploadScreen({ onUpload }: Props) {
                 }}
                 animate={{
                   borderColor: isDragging ? "rgba(201,168,154,0.7)" : "rgba(255,255,255,0.4)",
-                  backgroundColor: isDragging ? "rgba(245,237,232,0.85)" : "rgba(255,255,255,0.6)",
+                  backgroundColor: isDragging ? "rgba(245,237,232,0.90)" : "rgba(250,247,242,0.75)",
                 }}
                 transition={{ duration: 0.2 }}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
@@ -288,7 +288,7 @@ export default function UploadScreen({ onUpload }: Props) {
       {/* ------------------------------------------------------------------ */}
       {/* Scrolling words ticker — full width, pinned to bottom               */}
       {/* ------------------------------------------------------------------ */}
-      <div className="absolute bottom-6 left-0 right-0 z-20 flex flex-col gap-2 pointer-events-none select-none">
+      <div className="absolute bottom-6 left-0 right-0 z-20 flex flex-col gap-4 pointer-events-none select-none">
 
         {/* Row 1 — left to right */}
         <div className="overflow-hidden w-full">
