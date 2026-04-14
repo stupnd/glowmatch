@@ -6,7 +6,7 @@ import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
 
 interface Props {
-  onUpload: () => void
+  onUpload: (file: File) => void
 }
 
 const PARTICLES = [
@@ -90,12 +90,20 @@ export default function UploadScreen({ onUpload }: Props) {
   )
 
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files?.length) onUpload() },
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) onUpload(file)
+    },
     [onUpload],
   )
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files.length) onUpload() },
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragging(false)
+      const file = e.dataTransfer.files[0]
+      if (file) onUpload(file)
+    },
     [onUpload],
   )
 

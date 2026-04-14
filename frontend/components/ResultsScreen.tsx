@@ -71,12 +71,11 @@ export default function ResultsScreen({ results, onReset }: Props) {
         {/* Page title */}
         <h1
           ref={titleRef}
-          className="text-center mb-10 opacity-0"
+          className="title-shimmer text-center mb-10 opacity-0"
           style={{
             fontFamily: "var(--font-display), serif",
             fontSize: "clamp(32px, 6vw, 48px)",
             fontWeight: 700,
-            color: "var(--text)",
           }}
         >
           Your Glow Profile
@@ -87,23 +86,23 @@ export default function ResultsScreen({ results, onReset }: Props) {
           ref={heroRef}
           className="flex items-center gap-8 rounded-3xl p-8 mb-12 opacity-0"
           style={{
-            background: "rgba(255,255,255,0.62)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
+            background: "rgba(250,247,242,0.75)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
             border: "1px solid rgba(255,255,255,0.4)",
-            boxShadow: "0 20px 40px rgba(44,24,16,0.06)",
+            boxShadow: "0 25px 50px rgba(44,24,16,0.08)",
           }}
         >
           {/* Swatch */}
-          <div className="relative flex-shrink-0" style={{ width: 112, height: 112 }}>
+          <div className="relative flex-shrink-0" style={{ width: 160, height: 160 }}>
             {/* Pulsing glow — sits behind */}
             <motion.div
               className="absolute inset-0 rounded-full"
               animate={{
                 boxShadow: [
-                  `0 0 18px 4px ${results.avg_hex}55`,
-                  `0 0 32px 14px ${results.avg_hex}80`,
-                  `0 0 18px 4px ${results.avg_hex}55`,
+                  `0 0 22px 6px ${results.avg_hex}55`,
+                  `0 0 40px 18px ${results.avg_hex}80`,
+                  `0 0 22px 6px ${results.avg_hex}55`,
                 ],
               }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -151,9 +150,23 @@ export default function ResultsScreen({ results, onReset }: Props) {
               transition={{ type: "spring", delay: 0.9, stiffness: 200 }}
               className="inline-flex self-start items-center rounded-full px-3 py-1 text-xs"
               style={{
-                background: "rgba(201,168,154,0.18)",
-                border: "1px solid rgba(201,168,154,0.4)",
-                color: "var(--rose)",
+                background: results.undertone.toLowerCase().includes("warm")
+                  ? "#FDF0E8"
+                  : results.undertone.toLowerCase().includes("cool")
+                  ? "#EEF0FD"
+                  : "#F5F5F0",
+                border: `1px solid ${
+                  results.undertone.toLowerCase().includes("warm")
+                    ? "#E8C4A0"
+                    : results.undertone.toLowerCase().includes("cool")
+                    ? "#C4CAF0"
+                    : "#D4D4C4"
+                }`,
+                color: results.undertone.toLowerCase().includes("warm")
+                  ? "#8B4513"
+                  : results.undertone.toLowerCase().includes("cool")
+                  ? "#4B5BA8"
+                  : "#6B6B5B",
                 fontFamily: "var(--font-body)",
                 textTransform: "capitalize",
               }}
@@ -180,7 +193,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
         {/* Shades heading */}
         <h2
           ref={shadesHeadingRef}
-          className="mb-6 opacity-0"
+          className="mb-12 opacity-0"
           style={{
             fontFamily: "var(--font-display), serif",
             fontSize: 24,
@@ -192,7 +205,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
         </h2>
 
         {/* Shade cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
           {results.matched_shades.map((shade, i) => (
             <ShadeCard key={shade.shade_name} shade={shade} index={i} />
           ))}
@@ -251,7 +264,7 @@ function ShadeCard({ shade, index }: { shade: Shade; index: number }) {
       <div
         className="absolute inset-0 rounded-2xl"
         style={{
-          background: "rgba(255,255,255,0.62)",
+          background: "rgba(250,247,242,0.70)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
           border: "1px solid rgba(255,255,255,0.4)",
@@ -265,19 +278,6 @@ function ShadeCard({ shade, index }: { shade: Shade; index: number }) {
         style={{ backgroundColor: shade.hex, zIndex: 1, borderRadius: "16px 16px 0 0" }}
         animate={{ height: isHovered ? "100%" : 96 }}
         transition={{ duration: 0.4, ease: "easeInOut" }}
-      />
-
-      {/* Shimmer overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.28) 50%, transparent 60%)",
-          backgroundSize: "200% 100%",
-          animation: "shimmer 3s linear infinite",
-          zIndex: 10,
-          borderRadius: 16,
-        }}
       />
 
       {/* Content */}
