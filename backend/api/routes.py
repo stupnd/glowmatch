@@ -24,7 +24,7 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     if not pixels:
         raise HTTPException(status_code=422, detail="No face detected in the image.")
 
-    result = classify_monk(pixels)
+    result = classify_monk(pixels, image_bytes)
 
     matched_shades = match_shades(result["monk_scale"], result["undertone"])
 

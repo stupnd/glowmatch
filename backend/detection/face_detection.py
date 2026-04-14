@@ -17,6 +17,38 @@ _SKIN_LANDMARKS: list[int] = _CHEEK_LEFT + _CHEEK_RIGHT + _FOREHEAD
 _PATCH_RADIUS = 3
 
 
+def extract_face_crop(image_bytes: bytes, pad: float = 0.15) -> "np.ndarray | None":
+    """Return the face bounding region as an (H, W, 3) RGB uint8 array.
+
+    The crop is expanded by *pad* × face-width/height on each side so the
+    model sees a little context beyond the tight mesh box.  Returns None when
+    no face is detected or the image cannot be decoded.
+    """
+    image_bgr = _decode(image_bytes)
+    if image_bgr is None:
+        return None
+
+    h, w = image_bgr.shape[:2]
+    landmarks = _detect_landmarks(image_bgr)
+    if landmarks is None:
+        return None
+
+    xs = [int(lm.x * w) for lm in landmarks]
+    ys = [int(lm.y * h) for lm in landmarks]
+    x0, x1 = min(xs), max(xs)
+    y0, y1 = min(ys), max(ys)
+
+    pad_x = int((x1 - x0) * pad)
+    pad_y = int((y1 - y0) * pad)
+    x0 = max(0, x0 - pad_x)
+    x1 = min(w, x1 + pad_x)
+    y0 = max(0, y0 - pad_y)
+    y1 = min(h, y1 + pad_y)
+
+    crop = image_bgr[y0:y1, x0:x1]
+    return cv2.cvtColor(crop, cv2.COLOR_BGR2RGB) if crop.size > 0 else None
+
+
 def extract_skin_pixels(image_bytes: bytes) -> list[tuple[int, int, int]]:
     """Decode *image_bytes*, run MediaPipe Face Mesh, and return RGB tuples
     sampled from cheek and forehead landmarks.

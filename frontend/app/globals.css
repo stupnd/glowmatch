@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --cream: #FAF7F2;
+  --blush: #F5EDE8;
+  --rose: #C9A89A;
+  --text: #2C1810;
+  --text-muted: #8B6B61;
+  --gold: #D4A853;
+}
+
+@theme inline {
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --color-cream: var(--cream);
+  --color-blush: var(--blush);
+  --color-rose: var(--rose);
+  --color-text-brand: var(--text);
+  --color-text-muted-brand: var(--text-muted);
+  --color-gold: var(--gold);
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes dashMove {
+  to { stroke-dashoffset: -28; }
+}
+
+@keyframes blobPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%       { opacity: 0.5;  transform: scale(1.06); }
+}
+
+body {
+  background: var(--cream);
+  color: var(--text);
+  font-family: var(--font-body), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.animated-bg {
+  background: linear-gradient(
+    135deg,
+    #FAF7F2  0%,
+    #F5EDE8  20%,
+    #FDF4E7  40%,
+    #F0E8F5  60%,
+    #E8F5F0  80%,
+    #FAF7F2  100%
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 16s ease infinite;
+}
+
+.title-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--text) 20%,
+    var(--gold) 40%,
+    #E8C47A     50%,
+    var(--gold) 60%,
+    var(--text) 80%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+.dash-border {
+  animation: dashMove 3s linear infinite;
+}
+
+.blob-pulse {
+  animation: blobPulse 4s ease-in-out infinite;
+}
