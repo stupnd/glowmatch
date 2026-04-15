@@ -1,7 +1,10 @@
+import asyncio
+import base64
 import json
 import os
 import time
 
+import httpx
 from ddgs import DDGS
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
@@ -12,6 +15,32 @@ from detection.monk_classifier import classify_monk
 from detection.shade_matcher import match_shades
 
 router = APIRouter()
+
+REMOVEBG_API_KEY = os.environ.get("REMOVEBG_API_KEY")
+
+
+# ── Background removal ────────────────────────────────────────────────────────
+
+async def remove_background(image_url: str) -> str | None:
+    """Remove background from image URL via remove.bg.
+    Returns a data-URI base64 PNG with transparent background, or None."""
+    if not REMOVEBG_API_KEY or not image_url:
+        return None
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.remove.bg/v1.0/removebg",
+                data={"image_url": image_url, "size": "auto"},
+                headers={"X-Api-Key": REMOVEBG_API_KEY},
+                timeout=30.0,
+            )
+            if response.status_code == 200:
+                img_data = base64.b64encode(response.content).decode("utf-8")
+                return f"data:image/png;base64,{img_data}"
+            print(f"remove.bg returned {response.status_code}: {response.text[:200]}")
+    except Exception as e:
+        print(f"remove.bg error: {e}")
+    return None
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -113,7 +142,16 @@ Extract brand separately. Keep imageUrl as-is. Max 4 results."""
         )
         text   = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         parsed = json.loads(text)
-        return {"results": parsed}
+
+        # Remove backgrounds in parallel
+        image_urls = [item.get("imageUrl", "") for item in parsed[:4]]
+        cutouts = await asyncio.gather(*[remove_background(url) for url in image_urls])
+
+        processed_results = [
+            {**item, "imageUrl": item.get("imageUrl", ""), "cutoutUrl": cutout}
+            for item, cutout in zip(parsed[:4], cutouts)
+        ]
+        return {"results": processed_results}
 
     except Exception as e:
         print(f"Search error: {e}")

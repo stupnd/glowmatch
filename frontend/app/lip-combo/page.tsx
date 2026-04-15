@@ -15,6 +15,7 @@ interface LipProduct {
   name: string
   shade: string
   imageUrl: string | null
+  cutoutUrl: string | null   // base64 transparent PNG from remove.bg
   hexColor: string
 }
 
@@ -23,6 +24,7 @@ interface SearchResult {
   name: string
   shade: string
   imageUrl: string | null
+  cutoutUrl: string | null
 }
 
 interface PlacedSticker {
@@ -74,7 +76,8 @@ function rndBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-// ── Product image (with fallback) ─────────────────────────────────────────────
+// ── Product image (polaroid interior: imageUrl or fallback circle) ────────────
+// Used inside a polaroid frame when no cutoutUrl is available.
 
 function ProductImg({ product, size }: { product: LipProduct; size: number }) {
   const [err, setErr] = useState(false)
@@ -217,7 +220,41 @@ function CardPreview({
               const rotations = [-8, 3, -5, 7, -3]
               const pos = offsets[i] ?? { left: 10 + i * 60, top: 20 }
               const rot = rotations[i] ?? 0
+              const label = p.shade || p.name.slice(0, 14)
 
+              if (p.cutoutUrl) {
+                // Floating cutout — no polaroid frame
+                return (
+                  <div key={p.id} style={{
+                    position: "absolute",
+                    left: pos.left, top: pos.top,
+                    width: 90,
+                    transform: `rotate(${rot}deg)`,
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                    zIndex: i,
+                  }}>
+                    <img
+                      src={p.cutoutUrl}
+                      alt={p.name}
+                      style={{
+                        width: 70, height: 70, objectFit: "contain",
+                        filter: "drop-shadow(2px 4px 8px rgba(0,0,0,0.20))",
+                      }}
+                    />
+                    <p style={{
+                      fontFamily: "Georgia, serif", fontSize: 9,
+                      color: textMuted, textAlign: "center",
+                      maxWidth: 80, lineHeight: 1.3,
+                      overflow: "hidden", textOverflow: "ellipsis",
+                      whiteSpace: "nowrap", width: "100%",
+                    }}>
+                      {label}
+                    </p>
+                  </div>
+                )
+              }
+
+              // Polaroid frame (imageUrl or fallback circle)
               return (
                 <div key={p.id} style={{
                   position: "absolute",
@@ -233,18 +270,13 @@ function CardPreview({
                 }}>
                   <ProductImg product={p} size={70} />
                   <p style={{
-                    fontFamily: "Georgia, serif",
-                    fontSize: 9,
-                    color: "#6B5E57",
-                    textAlign: "center",
-                    maxWidth: 80,
-                    lineHeight: 1.3,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    width: "100%",
+                    fontFamily: "Georgia, serif", fontSize: 9,
+                    color: "#6B5E57", textAlign: "center",
+                    maxWidth: 80, lineHeight: 1.3,
+                    overflow: "hidden", textOverflow: "ellipsis",
+                    whiteSpace: "nowrap", width: "100%",
                   }}>
-                    {p.shade || p.name.slice(0, 14)}
+                    {label}
                   </p>
                 </div>
               )
@@ -369,12 +401,13 @@ export default function LipComboPage() {
   const addProduct = (result: SearchResult) => {
     if (products.length >= 5) return
     setProducts((prev) => [...prev, {
-      id:       uid(),
-      brand:    result.brand,
-      name:     result.name,
-      shade:    result.shade,
-      imageUrl: result.imageUrl,
-      hexColor: PRODUCT_COLORS[products.length % PRODUCT_COLORS.length],
+      id:        uid(),
+      brand:     result.brand,
+      name:      result.name,
+      shade:     result.shade,
+      imageUrl:  result.imageUrl,
+      cutoutUrl: result.cutoutUrl,
+      hexColor:  PRODUCT_COLORS[products.length % PRODUCT_COLORS.length],
     }])
     setSearchQuery("")
     setSearchResults([])
@@ -562,7 +595,15 @@ export default function LipComboPage() {
                         className="scrapbook-card"
                         style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}
                       >
-                        {result.imageUrl ? (
+                        {result.cutoutUrl ? (
+                          <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <img
+                              src={result.cutoutUrl}
+                              alt={result.name}
+                              style={{ width: 36, height: 36, objectFit: "contain", filter: "drop-shadow(1px 2px 4px rgba(0,0,0,0.15))" }}
+                            />
+                          </div>
+                        ) : result.imageUrl ? (
                           <img
                             src={result.imageUrl}
                             alt={result.name}
