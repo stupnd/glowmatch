@@ -1,5 +1,6 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
+from api.claude_recommendations import get_shade_recommendations
 from detection.face_detection import extract_skin_pixels
 from detection.monk_classifier import classify_monk
 from detection.shade_matcher import match_shades
@@ -27,6 +28,19 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     result = classify_monk(pixels, image_bytes)
 
     matched_shades = match_shades(result["monk_scale"], result["undertone"])
+
+    try:
+        recommendations = get_shade_recommendations(
+            result["monk_scale"],
+            result["undertone"],
+            result["avg_hex"],
+            matched_shades,
+        )
+        for shade, rec in zip(matched_shades, recommendations):
+            shade["recommendation"] = rec
+    except Exception:
+        for shade in matched_shades:
+            shade["recommendation"] = shade.get("description", "")
 
     return {
         "pixel_count": len(pixels),
