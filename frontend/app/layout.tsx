@@ -29,6 +29,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="fixed top-4 right-4 z-50">
           <AuthButton />
         </div>
+        {/* Centered lip combo nav link */}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
+          <a
+            href="/lip-combo"
+            className="tag-pill"
+            style={{
+              color: "var(--lilac)", borderColor: "var(--lilac)",
+              background: "rgba(255,255,255,0.88)",
+              fontSize: 13, fontWeight: 500, textDecoration: "none",
+            }}
+          >
+            lip combo ✦
+          </a>
+        </div>
         {children}
       </body>
     </html>
