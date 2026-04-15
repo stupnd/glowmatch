@@ -4,7 +4,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
-import { Sticker, FlowerSticker, BlobSticker, SparkleSticker } from "./Stickers"
+import { Sticker, FlowerSticker, BlobSticker, SparkleSticker, HeartSticker } from "./Stickers"
 
 interface Props {
   onUpload: (file: File) => void
@@ -35,23 +35,22 @@ const RINGS = [
 const TIP_STYLES: Record<string, React.CSSProperties> = {
   "Face forward":  { color: "var(--rose)",  borderColor: "var(--rose)",  background: "rgba(255,255,255,0.80)", fontWeight: 600 },
   "Natural light": { color: "var(--gold)",  borderColor: "var(--gold)",  background: "rgba(255,255,255,0.80)", fontWeight: 600 },
-  "No filters":    { color: "#3D8A56",       borderColor: "#3D8A56",       background: "rgba(255,255,255,0.80)", fontWeight: 600 },
+  "No filters":    { color: "#3D8A56",      borderColor: "#3D8A56",      background: "rgba(255,255,255,0.80)", fontWeight: 600 },
 }
 
 export default function UploadScreen({ onUpload }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const titleRef     = useRef<HTMLHeadingElement>(null)
   const taglineRef   = useRef<HTMLDivElement>(null)
-  const cardWrapRef  = useRef<HTMLDivElement>(null)
-  const tipsRef      = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const particleRefs = useRef<(HTMLDivElement | null)[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Camera refs
   const videoRef  = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+  const [showUpload,   setShowUpload]   = useState(false)
   const [isDragging,   setIsDragging]   = useState(false)
   const [isCameraOpen, setIsCameraOpen] = useState(false)
   const [facingMode,   setFacingMode]   = useState<"user" | "environment">("user")
@@ -112,11 +111,8 @@ export default function UploadScreen({ onUpload }: Props) {
   // ── GSAP entrance ───────────────────────────────────────────────────────
   useGSAP(
     () => {
-      gsap.fromTo(titleRef.current,    { opacity: 0, y: 30 },       { opacity: 1, y: 0, duration: 1,   ease: "power3.out" })
-      gsap.fromTo(taglineRef.current,  { opacity: 0, y: 20 },       { opacity: 1, y: 0, duration: 0.8, delay: 0.3, ease: "power2.out" })
-      gsap.fromTo(cardWrapRef.current, { opacity: 0, scale: 0.95 }, { opacity: 1, scale: 1, duration: 0.8, delay: 0.5, ease: "power2.out" })
-      if (tipsRef.current)
-        gsap.fromTo(tipsRef.current.children, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.12, delay: 0.8, ease: "power2.out" })
+      gsap.fromTo(titleRef.current,   { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1,   ease: "power3.out" })
+      gsap.fromTo(taglineRef.current, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, delay: 0.3, ease: "power2.out" })
       particleRefs.current.forEach((el, i) => {
         if (!el) return
         gsap.fromTo(el, { y: 0, opacity: 0.5 }, { y: -120, opacity: 0, duration: PARTICLES[i].dur, delay: PARTICLES[i].delay, repeat: -1, ease: "none" })
@@ -134,15 +130,20 @@ export default function UploadScreen({ onUpload }: Props) {
     const file = e.dataTransfer.files[0]; if (file) onUpload(file)
   }, [onUpload])
 
+  const handleCTAClick = useCallback(() => {
+    setShowUpload(true)
+    // After reveal, scroll into view smoothly
+    setTimeout(() => {
+      document.getElementById("upload-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 100)
+  }, [])
+
   return (
-    <div
-      ref={containerRef}
-      className="animated-bg relative min-h-screen overflow-hidden flex flex-col items-center justify-center px-4"
-    >
-      {/* Vivid blob background */}
+    <div ref={containerRef} className="animated-bg relative overflow-hidden">
+
+      {/* ── Global vivid blob background ── */}
       <div
-        id="spline-bg"
-        className="absolute inset-0 z-0 pointer-events-none blob-pulse"
+        className="fixed inset-0 z-0 pointer-events-none blob-pulse"
         style={{
           background: [
             "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(196,168,240,0.35) 0%, transparent 65%)",
@@ -153,9 +154,8 @@ export default function UploadScreen({ onUpload }: Props) {
       />
 
       {/* ── Floating decorative background stickers ── */}
-      {/* Large blob — slow rotation */}
       <motion.div
-        className="absolute pointer-events-none"
+        className="fixed pointer-events-none"
         style={{ top: "2.5rem", left: "2.5rem", zIndex: 0 }}
         animate={{ rotate: [0, 360] }}
         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
@@ -163,9 +163,8 @@ export default function UploadScreen({ onUpload }: Props) {
         <BlobSticker size={80} color="var(--lilac)" style={{ opacity: 0.15 }} />
       </motion.div>
 
-      {/* Flower — gentle float */}
       <motion.div
-        className="absolute pointer-events-none"
+        className="fixed pointer-events-none"
         style={{ bottom: "8rem", right: "4rem", zIndex: 0 }}
         animate={{ y: [0, -15, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
@@ -173,9 +172,8 @@ export default function UploadScreen({ onUpload }: Props) {
         <FlowerSticker size={60} color="var(--peach)" style={{ opacity: 0.12 }} />
       </motion.div>
 
-      {/* Sparkle — slow spin */}
       <motion.div
-        className="absolute pointer-events-none"
+        className="fixed pointer-events-none"
         style={{ top: "33%", right: "2rem", zIndex: 0 }}
         animate={{ rotate: [0, 180, 0] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
@@ -193,64 +191,196 @@ export default function UploadScreen({ onUpload }: Props) {
         />
       ))}
 
-      {/* Main content */}
-      <div className="relative z-20 flex flex-col items-center text-center w-full max-w-lg">
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 1 — HERO
+      ════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden">
 
-        {/* Title */}
-        <h1
-          ref={titleRef}
-          className="title-shimmer font-[family-name:var(--font-display)] opacity-0 mb-4"
-          style={{ fontSize: "clamp(48px, 10vw, 72px)", fontWeight: 400, letterSpacing: "-0.01em", lineHeight: 1.1 }}
+        {/* Morphing rings — centered behind title */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 1 }}>
+          {RINGS.map((ring, i) => (
+            <motion.div
+              key={i}
+              className="absolute"
+              style={{
+                width: ring.w, height: ring.h,
+                border: `1.5px solid ${ring.color}`, opacity: ring.opacity,
+                willChange: "transform, border-radius",
+              }}
+              animate={{
+                borderRadius: [ring.from, ring.to, ring.from],
+                rotate: ring.direction === 1 ? [0, 360] : [0, -360],
+              }}
+              transition={{ duration: ring.duration, repeat: Infinity, ease: "linear", repeatType: "loop" }}
+            />
+          ))}
+        </div>
+
+        {/* ── Social proof sticky notes (desktop only) ── */}
+        <div
+          className="hidden md:block absolute top-1/4 left-8 pointer-events-none"
+          style={{ zIndex: 5 }}
         >
-          Tinted
-          <span style={{ color: "var(--rose)", fontSize: "clamp(20px, 4vw, 28px)", opacity: 0.7, marginLeft: 8, WebkitTextFillColor: "var(--rose)" }}>
-            ✦
-          </span>
-        </h1>
-
-        {/* Tagline */}
-        <div ref={taglineRef} className="opacity-0 mb-8 flex flex-col items-center gap-1">
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "var(--text)", fontWeight: 500 }}>Finding your shade</p>
-          <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "var(--rose)", fontWeight: 700 }}>shouldn&apos;t be this hard.</p>
-          <div className="mt-3 flex justify-center">
-            <span className="sticky-note" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              a beauty journal for every skin tone
-              <Sticker type="sparkle" size={16} color="#E8A020" rotate={15} style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </span>
+          <div
+            className="sticky-note"
+            style={{ transform: "rotate(-3deg)", display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12 }}
+          >
+            finally found my shade
+            <HeartSticker size={14} color="#E85D75" style={{ display: "inline-block", verticalAlign: "middle" }} />
           </div>
         </div>
 
-        {/* Card + morphing rings */}
-        <motion.div
-          className="mt-10"
-          animate={{ y: [0, -8, 0] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          style={{ willChange: "transform", width: "100%" }}
+        <div
+          className="hidden md:block absolute pointer-events-none"
+          style={{ top: "33%", right: "1.5rem", zIndex: 5 }}
         >
-          <div className="relative w-full flex items-center justify-center">
+          <div
+            className="sticky-note"
+            style={{ transform: "rotate(2deg)", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}
+          >
+            MST-7, warm und
+            <SparkleSticker size={13} color="#E8A020" style={{ display: "inline-block", verticalAlign: "middle" }} />
+          </div>
+        </div>
 
-            {/* Morphing rings */}
-            {RINGS.map((ring, i) => (
-              <motion.div
-                key={i}
-                className="absolute pointer-events-none"
-                style={{
-                  width: ring.w, height: ring.h,
-                  border: `1.5px solid ${ring.color}`, opacity: ring.opacity,
-                  top: "50%", left: "50%", x: "-50%", y: "-50%",
-                  zIndex: 0, willChange: "transform, border-radius",
-                }}
-                animate={{ borderRadius: [ring.from, ring.to, ring.from], rotate: ring.direction === 1 ? [0, 360] : [0, -360] }}
-                transition={{ duration: ring.duration, repeat: Infinity, ease: "linear", repeatType: "loop" }}
-              />
-            ))}
+        <div
+          className="hidden md:block absolute pointer-events-none"
+          style={{ bottom: "33%", left: "1.5rem", zIndex: 5 }}
+        >
+          <div
+            className="sticky-note"
+            style={{ transform: "rotate(-1.5deg)", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12 }}
+          >
+            my lip recipe is saved
+            <FlowerSticker size={14} color="#E85D75" style={{ display: "inline-block", verticalAlign: "middle" }} />
+          </div>
+        </div>
 
-            {/* Card wrapper */}
-            <div ref={cardWrapRef} className="opacity-0 w-full relative" style={{ zIndex: 1 }}>
+        <div
+          className="hidden md:block absolute pointer-events-none"
+          style={{ top: "50%", right: "2rem", zIndex: 5 }}
+        >
+          <div
+            className="sticky-note"
+            style={{ transform: "rotate(1deg)", fontSize: 12 }}
+          >
+            matched in 30 seconds
+          </div>
+        </div>
+
+        {/* ── Hero content ── */}
+        <div className="relative z-20 flex flex-col items-center text-center w-full max-w-xl">
+
+          {/* Title */}
+          <h1
+            ref={titleRef}
+            className="title-shimmer font-[family-name:var(--font-display)] opacity-0 mb-4"
+            style={{
+              fontSize: "clamp(64px, 14vw, 96px)",
+              fontWeight: 400,
+              letterSpacing: "-0.01em",
+              lineHeight: 1.05,
+            }}
+          >
+            Tinted
+            <span style={{ color: "var(--rose)", fontSize: "clamp(20px, 4vw, 32px)", opacity: 0.7, marginLeft: 10, WebkitTextFillColor: "var(--rose)" }}>
+              ✦
+            </span>
+          </h1>
+
+          {/* Tagline */}
+          <div ref={taglineRef} className="opacity-0 mb-6 flex flex-col items-center gap-1">
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "var(--text)", fontWeight: 500 }}>Finding your shade</p>
+            <p style={{ fontFamily: "var(--font-body)", fontSize: 18, color: "var(--rose)", fontWeight: 700 }}>shouldn&apos;t be this hard.</p>
+            <div className="mt-3 flex justify-center">
+              <span className="sticky-note" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                a beauty journal for every skin tone
+                <Sticker type="sparkle" size={16} color="#E8A020" rotate={15} style={{ display: "inline-block", verticalAlign: "middle" }} />
+              </span>
+            </div>
+          </div>
+
+          {/* CTA button */}
+          <motion.button
+            onClick={handleCTAClick}
+            whileHover={{
+              scale: 1.04,
+              boxShadow: "0 12px 40px rgba(232,93,117,0.45)",
+            }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 18,
+              fontWeight: 600,
+              background: "var(--rose)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 9999,
+              padding: "16px 36px",
+              cursor: "pointer",
+              marginBottom: 12,
+              boxShadow: "0 6px 24px rgba(232,93,117,0.30)",
+            }}
+          >
+            find your shade →
+          </motion.button>
+
+          {/* Sub-text */}
+          <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)" }}>
+            takes less than 30s · no account needed
+          </p>
+        </div>
+
+        {/* Ticker pinned to bottom of hero */}
+        <div className="absolute bottom-6 left-0 right-0 z-20 flex flex-col gap-4 pointer-events-none select-none">
+          <div className="overflow-hidden w-full">
+            <motion.div className="flex whitespace-nowrap" style={{ width: "fit-content" }}
+              animate={{ x: ["0%", "-33.33%"] }} transition={{ duration: 25, repeat: Infinity, ease: "linear", repeatType: "loop" }}>
+              {[ROW_1, ROW_1, ROW_1].map((text, i) => (
+                <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text)", opacity: 0.7, fontWeight: 500, textShadow: "0 1px 2px rgba(255,255,255,0.4)" }}>{text}</span>
+              ))}
+            </motion.div>
+          </div>
+          <div className="overflow-hidden w-full">
+            <motion.div className="flex whitespace-nowrap" style={{ width: "fit-content" }}
+              animate={{ x: ["-33.33%", "0%"] }} transition={{ duration: 20, repeat: Infinity, ease: "linear", repeatType: "loop" }}>
+              {[ROW_2, ROW_2, ROW_2].map((text, i) => (
+                <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text)", opacity: 0.7, fontWeight: 500, textShadow: "0 1px 2px rgba(255,255,255,0.4)" }}>{text}</span>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════
+          SECTION 2 — UPLOAD (revealed after CTA)
+      ════════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {showUpload && (
+          <motion.section
+            id="upload-section"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative z-20 flex flex-col items-center px-4 pb-24"
+            style={{ paddingTop: "4rem" }}
+          >
+            {/* Step label */}
+            <div className="mb-8 flex justify-center">
+              <span className="sticky-note" style={{ transform: "rotate(-0.5deg)", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                step 1 of 1
+                <Sticker type="star" size={13} color="#E8A020" rotate={10} style={{ display: "inline-block", verticalAlign: "middle" }} />
+              </span>
+            </div>
+
+            {/* Upload card */}
+            <div className="w-full max-w-lg relative">
+
               {/* Washi tape */}
               <div className="washi-tape w-24 absolute -top-3 left-1/2 -translate-x-1/2 rotate-[-2deg] z-10" />
 
-              {/* Corner sticker decoratives */}
+              {/* Corner stickers */}
               <div className="absolute top-2 right-3 z-10 pointer-events-none select-none">
                 <Sticker type="flower" size={20} color="#E85D75" rotate={20} style={{ opacity: 0.6 }} />
               </div>
@@ -282,7 +412,6 @@ export default function UploadScreen({ onUpload }: Props) {
                 </svg>
 
                 <div className="flex flex-col items-center gap-4">
-                  {/* Flower icon in drop zone */}
                   <motion.div
                     animate={{ rotate: [0, 15, 0], scale: [1, 1.1, 1] }}
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -326,36 +455,16 @@ export default function UploadScreen({ onUpload }: Props) {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFileChange} />
               </motion.div>
             </div>
-          </div>
-        </motion.div>
 
-        {/* Tips row */}
-        <div ref={tipsRef} className="mt-8 flex items-center gap-4 flex-wrap justify-center">
-          {(["Face forward", "Natural light", "No filters"] as const).map((tip) => (
-            <span key={tip} className="tag-pill opacity-0" style={TIP_STYLES[tip]}>{tip}</span>
-          ))}
-        </div>
-      </div>
-
-      {/* Scrolling ticker */}
-      <div className="absolute bottom-6 left-0 right-0 z-20 flex flex-col gap-4 pointer-events-none select-none">
-        <div className="overflow-hidden w-full">
-          <motion.div className="flex whitespace-nowrap" style={{ width: "fit-content" }}
-            animate={{ x: ["0%", "-33.33%"] }} transition={{ duration: 25, repeat: Infinity, ease: "linear", repeatType: "loop" }}>
-            {[ROW_1, ROW_1, ROW_1].map((text, i) => (
-              <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text)", opacity: 0.7, fontWeight: 500, textShadow: "0 1px 2px rgba(255,255,255,0.4)" }}>{text}</span>
-            ))}
-          </motion.div>
-        </div>
-        <div className="overflow-hidden w-full">
-          <motion.div className="flex whitespace-nowrap" style={{ width: "fit-content" }}
-            animate={{ x: ["-33.33%", "0%"] }} transition={{ duration: 20, repeat: Infinity, ease: "linear", repeatType: "loop" }}>
-            {[ROW_2, ROW_2, ROW_2].map((text, i) => (
-              <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 16, color: "var(--text)", opacity: 0.7, fontWeight: 500, textShadow: "0 1px 2px rgba(255,255,255,0.4)" }}>{text}</span>
-            ))}
-          </motion.div>
-        </div>
-      </div>
+            {/* Tips row */}
+            <div className="mt-8 flex items-center gap-4 flex-wrap justify-center">
+              {(["Face forward", "Natural light", "No filters"] as const).map((tip) => (
+                <span key={tip} className="tag-pill" style={TIP_STYLES[tip]}>{tip}</span>
+              ))}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       <canvas ref={canvasRef} className="hidden" />
 

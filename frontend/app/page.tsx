@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import type { User } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase"
 import UploadScreen from "@/components/UploadScreen"
 import LoadingScreen from "@/components/LoadingScreen"
 import ResultsScreen from "@/components/ResultsScreen"
@@ -72,9 +74,24 @@ function mapApiResponse(data: ApiResponse): Results {
 }
 
 export default function Home() {
-  const [state,   setState]   = useState<AppState>("upload")
-  const [results, setResults] = useState<Results | null>(null)
-  const [error,   setError]   = useState<string | null>(null)
+  const supabase = useMemo(() => createClient(), [])
+
+  const [state,    setState]    = useState<AppState>("upload")
+  const [results,  setResults]  = useState<Results | null>(null)
+  const [error,    setError]    = useState<string | null>(null)
+  const [budget,   setBudget]   = useState<string>("all")
+  const [user,     setUser]     = useState<User | null>(null)
+
+  // Track auth state so we can save results for logged-in users
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   // Coordination flags: transition to results only when BOTH the API has
   // responded AND the loading animation has finished playing.
@@ -87,6 +104,19 @@ export default function Home() {
     }
   }
 
+  const saveToHistory = useCallback(async (analysisResults: Results, currentBudget: string) => {
+    if (!user) return
+    await supabase.from("shade_history").insert({
+      user_id:         user.id,
+      monk_scale:      analysisResults.monk_scale,
+      undertone:       analysisResults.undertone,
+      avg_hex:         analysisResults.avg_hex,
+      matched_shades:  analysisResults.matched_shades,
+      recommendations: analysisResults.recommendations,
+      budget:          currentBudget,
+    })
+  }, [user])
+
   const handleUpload = useCallback(async (file: File) => {
     // Reset coordination flags for this request.
     apiDoneRef.current  = false
@@ -97,6 +127,7 @@ export default function Home() {
     try {
       const fd = new FormData()
       fd.append("file", file)
+      fd.append("budget", budget)
       const res = await fetch("http://localhost:8000/analyze", {
         method: "POST",
         body: fd,
@@ -106,14 +137,16 @@ export default function Home() {
         throw new Error(detail?.detail ?? `Server error ${res.status}`)
       }
       const data: ApiResponse = await res.json()
-      setResults(mapApiResponse(data))
+      const mapped = mapApiResponse(data)
+      setResults(mapped)
+      saveToHistory(mapped, budget)
       apiDoneRef.current = true
       tryTransition()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.")
       setState("upload")
     }
-  }, [])
+  }, [budget, saveToHistory])
 
   // Called by LoadingScreen after its 4.5 s animation finishes.
   const handleLoadingComplete = useCallback(() => {

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from api.claude_recommendations import get_full_beauty_recommendations
 from detection.face_detection import extract_skin_pixels
@@ -14,7 +14,10 @@ async def health() -> dict[str, str]:
 
 
 @router.post("/analyze")
-async def analyze(file: UploadFile = File(...)) -> dict:
+async def analyze(
+    file: UploadFile = File(...),
+    budget: str = Form(default="all"),
+) -> dict:
     ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
     if not file.content_type or file.content_type not in ALLOWED_TYPES:
         raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
@@ -34,6 +37,7 @@ async def analyze(file: UploadFile = File(...)) -> dict:
             monk_scale=result["monk_scale"],
             undertone=result["undertone"],
             avg_hex=result["avg_hex"],
+            budget=budget,
         )
     except Exception as e:
         print(f"Claude recommendations failed: {e}")

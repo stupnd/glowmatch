@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { DM_Serif_Display, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
+import AuthButton from "@/components/AuthButton"
 
 const dmSerif = DM_Serif_Display({
   variable: "--font-display",
@@ -23,7 +24,13 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${dmSerif.variable} ${jakarta.variable}`}>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        {/* Fixed auth button — top-right, above everything */}
+        <div className="fixed top-4 right-4 z-50">
+          <AuthButton />
+        </div>
+        {children}
+      </body>
     </html>
   )
 }
