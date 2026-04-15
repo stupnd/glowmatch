@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence, Reorder } from "framer-motion"
-import { SparkleSticker } from "@/components/Stickers"
+import { Sticker, SparkleSticker, FlowerSticker, BlobSticker } from "@/components/Stickers"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+type StickerType = "flower" | "sparkle" | "heart" | "star" | "leaf" | "blob" | "swatch" | "ribbon"
 
 interface LipProduct {
   id: string
@@ -23,21 +25,57 @@ interface SearchResult {
   imageUrl: string | null
 }
 
+interface PlacedSticker {
+  id: string
+  type: StickerType
+  color: string
+  x: number
+  y: number
+  rotate: number
+  size: number
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const VIBE_TAGS = ["MLBB", "Glazed", "Vampire", "Bold", "Strawberry", "Naked", "Retro", "Blurred"]
 
-const BG_COLORS = ["#FFF8F0", "#FFE8F5", "#F0F8FF", "#F5FFE8", "#FFF8E0", "#F8F0FF"]
+const CARD_BG_OPTIONS = [
+  { color: "#FFE566", label: "butter" },
+  { color: "#C4A8F0", label: "lilac"  },
+  { color: "#FF8C69", label: "peach"  },
+  { color: "#6DBF8A", label: "sage"   },
+  { color: "#E85D75", label: "rose"   },
+  { color: "#1A1612", label: "noir"   },
+]
 
 const PRODUCT_COLORS = ["#E85D75", "#C4A8F0", "#FF8C69", "#6DBF8A", "#FFE566"]
 
 const CARD_ROTATIONS = [-3, 3, -2, 2, -4]
 
+const STICKER_OPTIONS: Array<{ type: StickerType; color: string; label: string }> = [
+  { type: "flower",  color: "#E85D75", label: "flower-pink"    },
+  { type: "flower",  color: "#FFE566", label: "flower-yellow"  },
+  { type: "sparkle", color: "#E8A020", label: "sparkle-gold"   },
+  { type: "sparkle", color: "#C4A8F0", label: "sparkle-lilac"  },
+  { type: "heart",   color: "#E85D75", label: "heart-rose"     },
+  { type: "heart",   color: "#FF8C69", label: "heart-peach"    },
+  { type: "star",    color: "#E8A020", label: "star-gold"      },
+  { type: "star",    color: "#C4A8F0", label: "star-lilac"     },
+  { type: "leaf",    color: "#6DBF8A", label: "leaf-sage"      },
+  { type: "blob",    color: "#FF8C69", label: "blob-peach"     },
+  { type: "blob",    color: "#C4A8F0", label: "blob-lilac"     },
+  { type: "ribbon",  color: "#E85D75", label: "ribbon-rose"    },
+]
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function uid() { return Math.random().toString(36).slice(2) }
 
-// ── Product image (with error fallback) ───────────────────────────────────────
+function rndBetween(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+// ── Product image (with fallback) ─────────────────────────────────────────────
 
 function ProductImg({ product, size }: { product: LipProduct; size: number }) {
   const [err, setErr] = useState(false)
@@ -63,17 +101,58 @@ function ProductImg({ product, size }: { product: LipProduct; size: number }) {
   )
 }
 
-// ── Card preview (captured by html2canvas) ─────────────────────────────────────
+// ── Placed sticker (with hover × button) ─────────────────────────────────────
+
+function PlacedStickerEl({ sticker, onRemove }: { sticker: PlacedSticker; onRemove: (id: string) => void }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left:     sticker.x,
+        top:      sticker.y,
+        transform: `rotate(${sticker.rotate}deg)`,
+        cursor:   "pointer",
+        zIndex:   10,
+        userSelect: "none",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={() => onRemove(sticker.id)}
+    >
+      <Sticker type={sticker.type} color={sticker.color} size={sticker.size} />
+      {hovered && (
+        <div style={{
+          position: "absolute", top: -5, right: -5,
+          width: 16, height: 16, borderRadius: "50%",
+          background: "rgba(0,0,0,0.75)", color: "white",
+          fontSize: 10, display: "flex", alignItems: "center", justifyContent: "center",
+          lineHeight: 1, fontWeight: 700,
+        }}>
+          ×
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Card preview ──────────────────────────────────────────────────────────────
 
 function CardPreview({
-  products, vibeTag, cardBg, cardName,
+  products, vibeTag, cardBg, cardName, cardNote, placedStickers, onRemoveSticker,
 }: {
   products: LipProduct[]
   vibeTag: string | null
   cardBg: string
   cardName: string
+  cardNote: string
+  placedStickers: PlacedSticker[]
+  onRemoveSticker: (id: string) => void
 }) {
-  const count = products.length
+  const count     = products.length
+  const isDark    = cardBg === "#1A1612"
+  const textColor = isDark ? "white"                  : "#1A1612"
+  const textMuted = isDark ? "rgba(255,255,255,0.55)" : "#6B5E57"
 
   return (
     <div
@@ -83,35 +162,47 @@ function CardPreview({
         background: cardBg,
         borderRadius: 16, padding: 24,
         position: "relative", overflow: "hidden",
-        fontFamily: "Georgia, serif",
-        boxShadow: "4px 8px 32px rgba(0,0,0,0.12)",
+        boxShadow: "4px 8px 32px rgba(0,0,0,0.15)",
         flexShrink: 0,
         display: "flex", flexDirection: "column",
       }}
     >
+      {/* Paper texture overlay */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none",
+        borderRadius: 16, zIndex: 1,
+        background: "repeating-linear-gradient(45deg,rgba(0,0,0,1),rgba(0,0,0,1) 1px,transparent 1px,transparent 6px)",
+        opacity: 0.03,
+      }} />
+
+      {/* Placed stickers */}
+      {placedStickers.map((sticker) => (
+        <PlacedStickerEl key={sticker.id} sticker={sticker} onRemove={onRemoveSticker} />
+      ))}
+
       {/* Washi tape */}
       <div style={{
         position: "absolute", top: 0, left: "50%",
         transform: "translateX(-50%)",
         width: 120, height: 22,
         background: "repeating-linear-gradient(45deg,rgba(200,160,240,0.5),rgba(200,160,240,0.5) 6px,rgba(255,229,102,0.5) 6px,rgba(255,229,102,0.5) 12px)",
-        borderRadius: 2, opacity: 0.8,
+        borderRadius: 2, opacity: 0.8, zIndex: 2,
       }} />
 
       {/* Card name */}
-      <div style={{ textAlign: "center", marginTop: 20, marginBottom: 12 }}>
-        <p style={{ fontSize: 22, fontWeight: 400, color: "#1A1612", marginBottom: 2 }}>
+      <div style={{ textAlign: "center", marginTop: 20, marginBottom: 10, position: "relative", zIndex: 2 }}>
+        <p style={{ fontFamily: "Georgia, serif", fontSize: 22, fontWeight: 400, color: textColor, marginBottom: 2 }}>
           {cardName || "my lip combo"}
         </p>
-        <p style={{ fontSize: 10, color: "#6B5E57", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <p style={{ fontSize: 10, color: textMuted, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           by tinted
         </p>
       </div>
 
       {/* Products */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 2 }}>
         {count === 0 ? (
-          <p style={{ color: "#6B5E57", fontSize: 13, textAlign: "center" }}>
+          <p style={{ color: textMuted, fontSize: 13, textAlign: "center" }}>
             add products to see them here
           </p>
         ) : count <= 2 ? (
@@ -124,7 +215,7 @@ function CardPreview({
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
               }}>
                 <ProductImg product={p} size={90} />
-                <p style={{ fontSize: 9, color: "#6B5E57", textAlign: "center", maxWidth: 80, lineHeight: 1.3 }}>
+                <p style={{ fontFamily: "Georgia, serif", fontSize: 9, color: "#6B5E57", textAlign: "center", maxWidth: 80, lineHeight: 1.3 }}>
                   {p.shade || p.name.slice(0, 16)}
                 </p>
               </div>
@@ -139,22 +230,20 @@ function CardPreview({
                 transform: `rotate(${CARD_ROTATIONS[i]}deg)`,
                 marginLeft: i > 0 ? -12 : 0,
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                zIndex: i,
-                position: "relative",
+                zIndex: i, position: "relative",
               }}>
                 <ProductImg product={p} size={72} />
-                <p style={{ fontSize: 8, color: "#6B5E57", textAlign: "center", maxWidth: 68, lineHeight: 1.3 }}>
+                <p style={{ fontFamily: "Georgia, serif", fontSize: 8, color: "#6B5E57", textAlign: "center", maxWidth: 68, lineHeight: 1.3 }}>
                   {p.shade || p.name.slice(0, 14)}
                 </p>
               </div>
             ))}
           </div>
         ) : (
-          /* Fan layout for 5 */
           <div style={{ position: "relative", width: 340, height: 190 }}>
             {products.map((p, i) => {
-              const rots   = [-22, -11, 0, 11, 22]
-              const lefts  = [10,  65, 135, 205, 260]
+              const rots  = [-22, -11, 0, 11, 22]
+              const lefts = [10,  65, 135, 205, 260]
               return (
                 <div key={p.id} style={{
                   position: "absolute",
@@ -166,7 +255,7 @@ function CardPreview({
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 }}>
                   <ProductImg product={p} size={58} />
-                  <p style={{ fontSize: 7, color: "#6B5E57", textAlign: "center", maxWidth: 56, lineHeight: 1.3 }}>
+                  <p style={{ fontFamily: "Georgia, serif", fontSize: 7, color: "#6B5E57", textAlign: "center", maxWidth: 56, lineHeight: 1.3 }}>
                     {p.shade || p.name.slice(0, 12)}
                   </p>
                 </div>
@@ -176,34 +265,57 @@ function CardPreview({
         )}
       </div>
 
-      {/* Vibe tag */}
+      {/* Vibe tag — centered, larger, stickers on each side */}
       {vibeTag && (
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 10, position: "relative", zIndex: 2 }}>
+          <SparkleSticker size={16} color="#E8A020" />
           <span style={{
-            border: "1.5px dashed #E85D75", borderRadius: 9999,
-            padding: "4px 16px", fontSize: 17,
-            color: "#1A1612", background: "rgba(255,255,255,0.85)",
+            border: `1.5px dashed ${isDark ? "rgba(255,255,255,0.55)" : "#E85D75"}`,
+            borderRadius: 9999,
+            padding: "6px 20px",
+            fontSize: 18, fontWeight: 600,
+            color: isDark ? "white" : "#1A1612",
+            background: isDark ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.85)",
           }}>
             {vibeTag}
           </span>
+          <SparkleSticker size={16} color="#E8A020" />
         </div>
       )}
 
       {/* Color swatch strip */}
       {count > 0 && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 8, position: "relative", zIndex: 2 }}>
           {products.map((p) => (
             <div key={p.id} style={{
               width: 16, height: 16, borderRadius: "50%",
-              backgroundColor: p.hexColor, boxShadow: "1px 1px 4px rgba(0,0,0,0.15)",
+              backgroundColor: p.hexColor,
+              boxShadow: "1px 1px 4px rgba(0,0,0,0.15)",
             }} />
           ))}
         </div>
       )}
 
+      {/* Card note sticky-note */}
+      {cardNote && (
+        <div style={{
+          position: "absolute", bottom: 20, left: 16,
+          transform: "rotate(-2deg)", zIndex: 5,
+          background: "#FFE566",
+          borderRadius: 4,
+          boxShadow: "2px 2px 6px rgba(0,0,0,0.12)",
+          padding: "5px 10px",
+          maxWidth: 160,
+        }}>
+          <p style={{ fontFamily: "var(--font-body, sans-serif)", fontSize: 9, color: "#1A1612", lineHeight: 1.5, wordBreak: "break-word" }}>
+            {cardNote}
+          </p>
+        </div>
+      )}
+
       {/* Attribution */}
-      <div style={{ position: "absolute", bottom: 10, right: 14, display: "flex", alignItems: "center", gap: 3 }}>
-        <span style={{ fontSize: 9, color: "#6B5E57" }}>made with tinted</span>
+      <div style={{ position: "absolute", bottom: 10, right: 14, display: "flex", alignItems: "center", gap: 3, zIndex: 2 }}>
+        <span style={{ fontSize: 9, color: textMuted }}>made with tinted</span>
         <SparkleSticker size={10} color="#E8A020" style={{ display: "inline-block", verticalAlign: "middle" }} />
       </div>
     </div>
@@ -215,25 +327,37 @@ function CardPreview({
 export default function LipComboPage() {
   const router = useRouter()
 
-  const [products,      setProducts]      = useState<LipProduct[]>([])
-  const [vibeTag,       setVibeTag]       = useState<string | null>(null)
-  const [cardBg,        setCardBg]        = useState(BG_COLORS[0])
-  const [cardName,      setCardName]      = useState("my lip combo")
-  const [searchQuery,   setSearchQuery]   = useState("")
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [isSearching,   setIsSearching]   = useState(false)
-  const [isGenerating,  setIsGenerating]  = useState(false)
-  const [showToast,     setShowToast]     = useState(false)
+  const [products,       setProducts]       = useState<LipProduct[]>([])
+  const [vibeTag,        setVibeTag]        = useState<string | null>(null)
+  const [cardBg,         setCardBg]         = useState(CARD_BG_OPTIONS[0].color)
+  const [cardName,       setCardName]       = useState("my lip combo")
+  const [cardNote,       setCardNote]       = useState("")
+  const [placedStickers, setPlacedStickers] = useState<PlacedSticker[]>([])
+  const [searchQuery,    setSearchQuery]    = useState("")
+  const [searchResults,  setSearchResults]  = useState<SearchResult[]>([])
+  const [searchError,    setSearchError]    = useState(false)
+  const [noResults,      setNoResults]      = useState(false)
+  const [isSearching,    setIsSearching]    = useState(false)
+  const [isGenerating,   setIsGenerating]   = useState(false)
+  const [showToast,      setShowToast]      = useState(false)
 
-  // Debounced search
+  // Debounced search (500ms)
   useEffect(() => {
-    if (searchQuery.trim().length < 3) { setSearchResults([]); return }
+    if (searchQuery.trim().length < 3) {
+      setSearchResults([])
+      setSearchError(false)
+      setNoResults(false)
+      return
+    }
     const timer = setTimeout(() => runSearch(searchQuery), 500)
     return () => clearTimeout(timer)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 
   const runSearch = async (query: string) => {
     setIsSearching(true)
+    setSearchError(false)
+    setNoResults(false)
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
       const res = await fetch(`${apiUrl}/search-product`, {
@@ -241,9 +365,13 @@ export default function LipComboPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
       })
+      if (!res.ok) throw new Error(`Search failed: ${res.status}`)
       const data = await res.json()
-      setSearchResults(data.results ?? [])
+      const results: SearchResult[] = data.results ?? []
+      setSearchResults(results)
+      if (results.length === 0) setNoResults(true)
     } catch {
+      setSearchError(true)
       setSearchResults([])
     } finally {
       setIsSearching(false)
@@ -262,10 +390,28 @@ export default function LipComboPage() {
     }])
     setSearchQuery("")
     setSearchResults([])
+    setNoResults(false)
+    setSearchError(false)
   }
 
   const removeProduct = (id: string) =>
     setProducts((prev) => prev.filter((p) => p.id !== id))
+
+  const addSticker = (opt: typeof STICKER_OPTIONS[number]) => {
+    const newSticker: PlacedSticker = {
+      id:     uid(),
+      type:   opt.type,
+      color:  opt.color,
+      x:      rndBetween(20, 330),
+      y:      rndBetween(80, 420),
+      rotate: rndBetween(-20, 20),
+      size:   32,
+    }
+    setPlacedStickers((prev) => [...prev, newSticker])
+  }
+
+  const removeSticker = (id: string) =>
+    setPlacedStickers((prev) => prev.filter((s) => s.id !== id))
 
   const handleGenerate = async () => {
     const el = document.getElementById("lip-combo-card")
@@ -293,9 +439,40 @@ export default function LipComboPage() {
     }
   }
 
+  const textColorOnCard = cardBg === "#1A1612" ? "white" : "var(--text)"
+
   return (
-    <div className="animated-bg min-h-screen px-4 py-12">
-      <div className="max-w-5xl mx-auto">
+    <div className="animated-bg paper-texture min-h-screen px-4 py-12">
+
+      {/* ── Floating bg stickers ── */}
+      <motion.div
+        className="fixed pointer-events-none"
+        style={{ top: "5rem", left: "2.5rem", zIndex: 0 }}
+        animate={{ rotate: [0, 360] }}
+        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+      >
+        <BlobSticker size={100} color="#E85D75" style={{ opacity: 0.08 }} />
+      </motion.div>
+
+      <motion.div
+        className="fixed pointer-events-none"
+        style={{ bottom: "8rem", right: "2.5rem", zIndex: 0 }}
+        animate={{ y: [0, -20, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <FlowerSticker size={80} color="#FFE566" style={{ opacity: 0.07 }} />
+      </motion.div>
+
+      <motion.div
+        className="fixed pointer-events-none"
+        style={{ top: "50%", right: "1.25rem", zIndex: 0 }}
+        animate={{ rotate: [0, 180, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <SparkleSticker size={50} color="#C4A8F0" style={{ opacity: 0.10 }} />
+      </motion.div>
+
+      <div className="max-w-5xl mx-auto relative z-10">
 
         {/* Back */}
         <motion.button
@@ -310,13 +487,17 @@ export default function LipComboPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
 
-          {/* ── LEFT PANEL ── */}
-          <div className="flex flex-col gap-6">
-
+          {/* ── LEFT PANEL (wrapped in scrapbook-card) ── */}
+          <div
+            className="scrapbook-card flex flex-col gap-6"
+            style={{ padding: "1.5rem", borderRadius: "1rem" }}
+          >
             {/* Header */}
             <div>
-              <h1 className="title-shimmer font-[family-name:var(--font-display)]"
-                style={{ fontSize: "clamp(26px, 5vw, 38px)", fontWeight: 400, marginBottom: 8 }}>
+              <h1
+                className="title-shimmer font-[family-name:var(--font-display)]"
+                style={{ fontSize: "clamp(26px, 5vw, 38px)", fontWeight: 400, marginBottom: 8 }}
+              >
                 build your lip recipe
               </h1>
               <span className="sticky-note" style={{ transform: "rotate(-1deg)", fontSize: 12 }}>
@@ -326,30 +507,59 @@ export default function LipComboPage() {
 
             {/* Search */}
             <div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="search a product... e.g. Rhode Peptide Gloss"
-                style={{
-                  width: "100%", boxSizing: "border-box",
-                  border: "1.5px dashed var(--text-muted)",
-                  borderRadius: 9999, padding: "12px 20px",
-                  fontFamily: "var(--font-body)", fontSize: 14,
-                  color: "var(--text)", background: "rgba(255,255,255,0.88)",
-                  outline: "none",
-                }}
-              />
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="search a product... e.g. Rhode Peptide Gloss"
+                  style={{
+                    width: "100%", boxSizing: "border-box",
+                    border: "1.5px dashed var(--text-muted)",
+                    borderRadius: 9999, padding: "12px 44px 12px 20px",
+                    fontFamily: "var(--font-body)", fontSize: 14,
+                    color: "var(--text)", background: "rgba(255,255,255,0.88)",
+                    outline: "none",
+                  }}
+                />
+                {/* Spinning loader */}
+                {isSearching && (
+                  <div className="absolute right-4 pointer-events-none">
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <SparkleSticker size={18} color="var(--rose)" />
+                    </motion.div>
+                  </div>
+                )}
+              </div>
 
-              {isSearching && (
-                <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", marginTop: 8, paddingLeft: 8 }}>
-                  searching...
-                </p>
+              {/* Error state */}
+              {searchError && (
+                <div className="mt-3 flex justify-start">
+                  <span className="sticky-note" style={{ transform: "rotate(-0.5deg)", fontSize: 12, color: "var(--rose)" }}>
+                    couldn&apos;t find that product, try again!
+                  </span>
+                </div>
               )}
 
+              {/* No results state */}
+              {noResults && !isSearching && !searchError && (
+                <div className="mt-3 flex justify-start">
+                  <span className="sticky-note" style={{ transform: "rotate(0.5deg)", fontSize: 12 }}>
+                    no results found — try a different name
+                  </span>
+                </div>
+              )}
+
+              {/* Search results */}
               <AnimatePresence>
                 {searchResults.length > 0 && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-3 flex flex-col gap-2">
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="mt-3 flex flex-col gap-2"
+                  >
                     {searchResults.map((result, i) => (
                       <motion.div
                         key={i}
@@ -360,14 +570,15 @@ export default function LipComboPage() {
                         style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}
                       >
                         {result.imageUrl ? (
-                          <img src={result.imageUrl} alt={result.name}
+                          <img
+                            src={result.imageUrl}
+                            alt={result.name}
                             style={{ width: 36, height: 36, objectFit: "contain", borderRadius: 4, flexShrink: 0 }}
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                           />
                         ) : (
                           <div style={{ width: 36, height: 36, borderRadius: "50%", background: PRODUCT_COLORS[i % PRODUCT_COLORS.length], flexShrink: 0 }} />
                         )}
-
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {result.brand && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>{result.brand} · </span>}
@@ -377,13 +588,12 @@ export default function LipComboPage() {
                             <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)" }}>{result.shade}</p>
                           )}
                         </div>
-
                         <button
                           onClick={() => addProduct(result)}
                           disabled={products.length >= 5}
                           className="tag-pill cursor-pointer flex-shrink-0"
                           style={{
-                            color: products.length >= 5 ? "var(--text-muted)" : "var(--rose)",
+                            color:       products.length >= 5 ? "var(--text-muted)" : "var(--rose)",
                             borderColor: products.length >= 5 ? "var(--text-muted)" : "var(--rose)",
                             background: "transparent", fontSize: 18, padding: "1px 10px", lineHeight: 1,
                           }}
@@ -411,8 +621,10 @@ export default function LipComboPage() {
                 >
                   {products.map((product) => (
                     <Reorder.Item key={product.id} value={product}>
-                      <div className="scrapbook-card"
-                        style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "grab", userSelect: "none" }}>
+                      <div
+                        className="scrapbook-card"
+                        style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "grab", userSelect: "none" }}
+                      >
                         <span style={{ color: "var(--text-muted)", fontSize: 18 }}>⠿</span>
                         <div style={{ width: 28, height: 28, borderRadius: "50%", background: product.hexColor, flexShrink: 0 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -449,10 +661,10 @@ export default function LipComboPage() {
                     onClick={() => setVibeTag(vibeTag === tag ? null : tag)}
                     className="tag-pill cursor-pointer"
                     style={{
-                      background:  vibeTag === tag ? "var(--rose)"           : "rgba(255,255,255,0.80)",
-                      color:       vibeTag === tag ? "#fff"                  : "var(--text-muted)",
-                      borderColor: vibeTag === tag ? "var(--rose)"           : "var(--text-muted)",
-                      fontWeight:  vibeTag === tag ? 600                     : 500,
+                      background:  vibeTag === tag ? "var(--rose)"  : "rgba(255,255,255,0.80)",
+                      color:       vibeTag === tag ? "#fff"         : "var(--text-muted)",
+                      borderColor: vibeTag === tag ? "var(--rose)"  : "var(--text-muted)",
+                      fontWeight:  vibeTag === tag ? 600            : 500,
                       fontSize: 12,
                       transition: "all 0.15s",
                     }}
@@ -483,27 +695,99 @@ export default function LipComboPage() {
               />
             </div>
 
+            {/* Card note textarea */}
+            <div>
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>
+                add a note
+              </p>
+              <textarea
+                value={cardNote}
+                onChange={(e) => setCardNote(e.target.value.slice(0, 80))}
+                placeholder="write something... e.g. 'my everyday look 🌸'"
+                maxLength={80}
+                rows={2}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  border: "1.5px dashed var(--text-muted)",
+                  borderRadius: 12, padding: "10px 14px",
+                  fontFamily: "var(--font-body)", fontSize: 13,
+                  color: "var(--text)", background: "rgba(255,255,255,0.82)",
+                  outline: "none", resize: "none",
+                  backdropFilter: "blur(10px)",
+                  boxShadow: "4px 4px 0px rgba(0,0,0,0.08)",
+                }}
+              />
+              <p style={{ fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-muted)", textAlign: "right", marginTop: 2 }}>
+                {cardNote.length}/80
+              </p>
+            </div>
+
             {/* Background color */}
             <div>
               <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
                 card vibe
               </p>
-              <div style={{ display: "flex", gap: 10 }}>
-                {BG_COLORS.map((hex) => (
-                  <button
-                    key={hex}
-                    onClick={() => setCardBg(hex)}
-                    title={hex}
-                    style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      backgroundColor: hex, cursor: "pointer", outline: "none",
-                      border: cardBg === hex ? "2.5px solid #1A1612" : "2px solid rgba(0,0,0,0.10)",
-                      boxShadow: cardBg === hex ? "0 0 0 3px white, 0 0 0 5px #1A1612" : "0 2px 6px rgba(0,0,0,0.12)",
-                      transition: "box-shadow 0.15s",
-                    }}
-                  />
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {CARD_BG_OPTIONS.map((opt) => (
+                  <div key={opt.color} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <button
+                      onClick={() => setCardBg(opt.color)}
+                      title={opt.label}
+                      style={{
+                        width: 40, height: 40, borderRadius: "50%",
+                        backgroundColor: opt.color, cursor: "pointer", outline: "none",
+                        border: cardBg === opt.color ? "2.5px solid #1A1612" : "2px solid rgba(0,0,0,0.10)",
+                        boxShadow: cardBg === opt.color ? "0 0 0 3px white, 0 0 0 5px #1A1612" : "0 2px 6px rgba(0,0,0,0.15)",
+                        transition: "box-shadow 0.15s",
+                      }}
+                    />
+                    <span style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "var(--text-muted)", textAlign: "center" }}>
+                      {opt.label}
+                    </span>
+                  </div>
                 ))}
               </div>
+            </div>
+
+            {/* Sticker picker */}
+            <div>
+              <span className="sticky-note" style={{ transform: "rotate(-0.5deg)", fontSize: 12, display: "inline-block", marginBottom: 10 }}>
+                add stickers
+              </span>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 6 }}>
+                {STICKER_OPTIONS.map((opt) => (
+                  <motion.button
+                    key={opt.label}
+                    onClick={() => addSticker(opt)}
+                    whileHover={{ scale: 1.15 }}
+                    whileTap={{ scale: 0.90 }}
+                    title={opt.label}
+                    style={{
+                      width: 40, height: 40,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(255,255,255,0.75)",
+                      border: "1.5px dashed rgba(0,0,0,0.12)",
+                      borderRadius: 8, cursor: "pointer",
+                      padding: 4,
+                    }}
+                  >
+                    <Sticker type={opt.type} color={opt.color} size={24} />
+                  </motion.button>
+                ))}
+              </div>
+              {placedStickers.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)" }}>
+                    {placedStickers.length} sticker{placedStickers.length !== 1 ? "s" : ""} placed — click to remove
+                  </span>
+                  <button
+                    onClick={() => setPlacedStickers([])}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--rose)", fontSize: 11, fontFamily: "var(--font-body)", textDecoration: "underline", padding: 0 }}
+                  >
+                    clear all
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -515,6 +799,9 @@ export default function LipComboPage() {
                 vibeTag={vibeTag}
                 cardBg={cardBg}
                 cardName={cardName}
+                cardNote={cardNote}
+                placedStickers={placedStickers}
+                onRemoveSticker={removeSticker}
               />
             </div>
 
@@ -540,6 +827,13 @@ export default function LipComboPage() {
                 <SparkleSticker size={16} color="#fff" style={{ display: "inline-block", verticalAlign: "middle" }} />
               )}
             </motion.button>
+
+            {/* Dark card note */}
+            {cardBg === "#1A1612" && (
+              <span className="sticky-note" style={{ transform: "rotate(-0.5deg)", fontSize: 11 }}>
+                noir mode — text auto-switches to white ✦
+              </span>
+            )}
           </div>
         </div>
       </div>
