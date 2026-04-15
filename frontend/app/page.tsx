@@ -53,21 +53,15 @@ export type Results = {
   }
 }
 
-const FALLBACK_RECOMMENDATIONS = [
-  "This shade is an ideal match for your complexion. The undertone complements your skin's natural warmth without oxidizing.",
-  "A versatile option that works beautifully as a mixer or on days when your skin reads more neutral.",
-  "Your go-to for a slightly different finish — perfect for evening looks or when you want more depth.",
-]
-
 function mapApiResponse(data: ApiResponse): Results {
   return {
     pixel_count: data.pixel_count,
     monk_scale:  data.monk_scale,
     undertone:   data.undertone,
     avg_hex:     data.avg_hex,
-    matched_shades: data.matched_shades.map((shade, i) => ({
+    matched_shades: data.matched_shades.map((shade) => ({
       ...shade,
-      recommendation: FALLBACK_RECOMMENDATIONS[i] ?? FALLBACK_RECOMMENDATIONS[0],
+      recommendation: (shade as { recommendation?: string }).recommendation ?? "",
     })),
     recommendations: data.recommendations ?? {},
   }

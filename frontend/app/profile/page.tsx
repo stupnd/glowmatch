@@ -194,6 +194,18 @@ export default function ProfilePage() {
     <div className="animated-bg min-h-screen px-6 py-12">
       <div className="max-w-2xl mx-auto">
 
+        {/* ── Back button ── */}
+        <motion.button
+          onClick={() => router.push("/")}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.15 }}
+          className="tag-pill cursor-pointer mb-8"
+          style={{ color: "var(--rose)", borderColor: "var(--rose)", background: "rgba(255,255,255,0.88)", fontWeight: 600, fontSize: 13 }}
+        >
+          ← find your shade
+        </motion.button>
+
         {/* ── Header ── */}
         <motion.div
           className="flex items-start justify-between mb-12"

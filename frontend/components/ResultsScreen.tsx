@@ -85,7 +85,8 @@ export default function ResultsScreen({ results, onReset }: Props) {
   )
 
   const utStyle = undertoneStyle(results.undertone)
-  const activePicks: ShadeRec[] = results.recommendations[activeCategory] ?? []
+  const hasRecommendations = results.recommendations != null && Object.keys(results.recommendations).length > 0
+  const activePicks: ShadeRec[] = (results.recommendations[activeCategory] as ShadeRec[] | undefined) ?? []
 
   return (
     <div ref={containerRef} className="animated-bg min-h-screen py-16 px-4">
@@ -206,7 +207,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
         </div>
 
         {/* ── Beauty picks section ── */}
-        <div className="mb-12">
+        {hasRecommendations && <div className="mb-12">
           {/* Section header */}
           <div className="mb-6">
             <h2
@@ -255,7 +256,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
           {activePicks.length === 0 ? (
             <div className="flex justify-center">
               <span className="sticky-note" style={{ transform: "rotate(-0.5deg)" }}>
-                still analyzing... check back!
+                nothing here yet — try another tab!
               </span>
             </div>
           ) : (
@@ -271,7 +272,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Reset */}
         <div className="flex justify-center">
@@ -337,10 +338,12 @@ function ShadeCard({
         {shade.description}
       </p>
 
-      {/* Recommendation as sticky-note */}
-      <div className="sticky-note" style={{ transform: "rotate(1deg)", fontSize: 12, display: "block" }}>
-        {shade.recommendation}
-      </div>
+      {/* Recommendation as sticky-note — only shown when present */}
+      {shade.recommendation && (
+        <div className="sticky-note" style={{ transform: "rotate(1deg)", fontSize: 12, display: "block" }}>
+          {shade.recommendation}
+        </div>
+      )}
     </motion.div>
   )
 }
