@@ -235,7 +235,8 @@ export default function LipComboPage() {
   const runSearch = async (query: string) => {
     setIsSearching(true)
     try {
-      const res = await fetch("http://localhost:8000/search-product", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const res = await fetch(`${apiUrl}/search-product`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),

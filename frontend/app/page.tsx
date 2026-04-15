@@ -122,7 +122,8 @@ export default function Home() {
       const fd = new FormData()
       fd.append("file", file)
       fd.append("budget", budget)
-      const res = await fetch("http://localhost:8000/analyze", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const res = await fetch(`${apiUrl}/analyze`, {
         method: "POST",
         body: fd,
       })
