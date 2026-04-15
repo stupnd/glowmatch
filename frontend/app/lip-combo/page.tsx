@@ -50,7 +50,6 @@ const CARD_BG_OPTIONS = [
 
 const PRODUCT_COLORS = ["#E85D75", "#C4A8F0", "#FF8C69", "#6DBF8A", "#FFE566"]
 
-const CARD_ROTATIONS = [-3, 3, -2, 2, -4]
 
 const STICKER_OPTIONS: Array<{ type: StickerType; color: string; label: string }> = [
   { type: "flower",  color: "#E85D75", label: "flower-pink"    },
@@ -199,64 +198,53 @@ function CardPreview({
         </p>
       </div>
 
-      {/* Products */}
+      {/* Products — scattered polaroid layout */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", zIndex: 2 }}>
         {count === 0 ? (
           <p style={{ color: textMuted, fontSize: 13, textAlign: "center" }}>
             add products to see them here
           </p>
-        ) : count <= 2 ? (
-          <div style={{ display: "flex", gap: 20, justifyContent: "center", alignItems: "flex-end" }}>
-            {products.map((p, i) => (
-              <div key={p.id} style={{
-                background: "white", padding: 8, borderRadius: 4,
-                boxShadow: "2px 4px 12px rgba(0,0,0,0.10)",
-                transform: `rotate(${CARD_ROTATIONS[i]}deg)`,
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-              }}>
-                <ProductImg product={p} size={90} />
-                <p style={{ fontFamily: "Georgia, serif", fontSize: 9, color: "#6B5E57", textAlign: "center", maxWidth: 80, lineHeight: 1.3 }}>
-                  {p.shade || p.name.slice(0, 16)}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : count <= 4 ? (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
-            {products.map((p, i) => (
-              <div key={p.id} style={{
-                background: "white", padding: 6, borderRadius: 4,
-                boxShadow: "2px 4px 12px rgba(0,0,0,0.10)",
-                transform: `rotate(${CARD_ROTATIONS[i]}deg)`,
-                marginLeft: i > 0 ? -12 : 0,
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                zIndex: i, position: "relative",
-              }}>
-                <ProductImg product={p} size={72} />
-                <p style={{ fontFamily: "Georgia, serif", fontSize: 8, color: "#6B5E57", textAlign: "center", maxWidth: 68, lineHeight: 1.3 }}>
-                  {p.shade || p.name.slice(0, 14)}
-                </p>
-              </div>
-            ))}
-          </div>
         ) : (
-          <div style={{ position: "relative", width: 340, height: 190 }}>
+          <div style={{ position: "relative", width: 320, height: 220 }}>
             {products.map((p, i) => {
-              const rots  = [-22, -11, 0, 11, 22]
-              const lefts = [10,  65, 135, 205, 260]
+              const offsets = [
+                { left: 10,  top: 20  },
+                { left: 80,  top: 5   },
+                { left: 150, top: 25  },
+                { left: 220, top: 10  },
+                { left: 120, top: 100 },
+              ]
+              const rotations = [-8, 3, -5, 7, -3]
+              const pos = offsets[i] ?? { left: 10 + i * 60, top: 20 }
+              const rot = rotations[i] ?? 0
+
               return (
                 <div key={p.id} style={{
                   position: "absolute",
-                  left: lefts[i], top: 20,
-                  background: "white", padding: 6, borderRadius: 4,
-                  boxShadow: "2px 4px 12px rgba(0,0,0,0.10)",
-                  transform: `rotate(${rots[i]}deg)`,
-                  transformOrigin: "bottom center",
+                  left: pos.left, top: pos.top,
+                  width: 90,
+                  background: "white",
+                  padding: "8px 8px 10px",
+                  borderRadius: 4,
+                  boxShadow: "2px 4px 14px rgba(0,0,0,0.13)",
+                  transform: `rotate(${rot}deg)`,
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                  zIndex: i,
                 }}>
-                  <ProductImg product={p} size={58} />
-                  <p style={{ fontFamily: "Georgia, serif", fontSize: 7, color: "#6B5E57", textAlign: "center", maxWidth: 56, lineHeight: 1.3 }}>
-                    {p.shade || p.name.slice(0, 12)}
+                  <ProductImg product={p} size={70} />
+                  <p style={{
+                    fontFamily: "Georgia, serif",
+                    fontSize: 9,
+                    color: "#6B5E57",
+                    textAlign: "center",
+                    maxWidth: 80,
+                    lineHeight: 1.3,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    width: "100%",
+                  }}>
+                    {p.shade || p.name.slice(0, 14)}
                   </p>
                 </div>
               )
@@ -341,7 +329,7 @@ export default function LipComboPage() {
   const [isGenerating,   setIsGenerating]   = useState(false)
   const [showToast,      setShowToast]      = useState(false)
 
-  // Debounced search (500ms)
+  // Debounced search (300ms)
   useEffect(() => {
     if (searchQuery.trim().length < 3) {
       setSearchResults([])
@@ -349,7 +337,7 @@ export default function LipComboPage() {
       setNoResults(false)
       return
     }
-    const timer = setTimeout(() => runSearch(searchQuery), 500)
+    const timer = setTimeout(() => runSearch(searchQuery), 300)
     return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
@@ -512,6 +500,11 @@ export default function LipComboPage() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchQuery.trim().length >= 3) {
+                      runSearch(searchQuery)
+                    }
+                  }}
                   placeholder="search a product... e.g. Rhode Peptide Gloss"
                   style={{
                     width: "100%", boxSizing: "border-box",
