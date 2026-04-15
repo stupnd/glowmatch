@@ -1,27 +1,28 @@
 import type { Metadata } from "next"
-import { Playfair_Display, Inter } from "next/font/google"
+import { DM_Serif_Display, Plus_Jakarta_Sans } from "next/font/google"
 import "./globals.css"
 
-const playfair = Playfair_Display({
+const dmSerif = DM_Serif_Display({
   variable: "--font-display",
   subsets: ["latin"],
+  weight: "400",
   display: "swap",
 })
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
 })
 
 export const metadata: Metadata = {
-  title: "GlowMatch — Your Perfect Shade",
-  description: "AI-powered foundation shade matching",
+  title: "Tinted — Your Perfect Shade",
+  description: "AI-powered foundation shade matching for every skin tone",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="en" className={`${dmSerif.variable} ${jakarta.variable}`}>
       <body className="min-h-screen">{children}</body>
     </html>
   )

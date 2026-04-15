@@ -208,3 +208,5 @@ __marimo__/
 backend/ml/data/
 backend/.venv/
 frontend/node_modules/
+backend/.venv/
+frontend/node_modules/

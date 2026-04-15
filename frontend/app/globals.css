@@ -1,28 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #FAF7F2;
-  --blush: #F5EDE8;
-  --rose: #C9A89A;
-  --text: #2C1810;
-  --text-muted: #8B6B61;
-  --gold: #D4A853;
+  --butter: #FFE566;
+  --lilac:  #C4A8F0;
+  --peach:  #FF8C69;
+  --sage:   #6DBF8A;
+  --cream:  #FAFAF8;
+  --text:   #1A1612;
+  --text-muted: #6B5E57;
+  --rose:   #E85D75;
+  --gold:   #E8A020;
+  --sky:    #6AB8E8;
 }
 
 @theme inline {
   --font-display: var(--font-display);
   --font-body: var(--font-body);
   --color-cream: var(--cream);
-  --color-blush: var(--blush);
   --color-rose: var(--rose);
   --color-text-brand: var(--text);
   --color-text-muted-brand: var(--text-muted);
   --color-gold: var(--gold);
+  --color-butter: var(--butter);
+  --color-lilac: var(--lilac);
+  --color-peach: var(--peach);
+  --color-sage: var(--sage);
+  --color-sky: var(--sky);
 }
 
 @keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50%       { background-position: 100% 50%; }
+  0%   { background-position: 0%   50%; }
+  25%  { background-position: 50%  100%; }
+  50%  { background-position: 100% 50%; }
+  75%  { background-position: 50%  0%; }
+  100% { background-position: 0%   50%; }
 }
 
 @keyframes shimmer {
@@ -49,12 +60,11 @@ body {
 .animated-bg {
   background: linear-gradient(
     135deg,
-    #FAF7F2  0%,
-    #F5EDE8  20%,
-    #FDF4E7  40%,
-    #F0E8F5  60%,
-    #E8F5F0  80%,
-    #FAF7F2  100%
+    #FFE566 0%,
+    #C4A8F0 25%,
+    #FF8C69 50%,
+    #6DBF8A 75%,
+    #FAFAF8 100%
   );
   background-size: 400% 400%;
   animation: gradientShift 16s ease infinite;
@@ -63,11 +73,11 @@ body {
 .title-shimmer {
   background: linear-gradient(
     90deg,
-    var(--text) 20%,
-    var(--gold) 40%,
-    #E8C47A     50%,
-    var(--gold) 60%,
-    var(--text) 80%
+    var(--text)  20%,
+    var(--gold)  40%,
+    var(--rose)  50%,
+    var(--lilac) 60%,
+    var(--text)  80%
   );
   background-size: 200% auto;
   background-clip: text;
@@ -82,4 +92,62 @@ body {
 
 .blob-pulse {
   animation: blobPulse 4s ease-in-out infinite;
+}
+
+/* ── Scrapbook / dreamy UI components ── */
+
+.scrapbook-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1.5px dashed rgba(0, 0, 0, 0.15);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.sticky-note {
+  background: #FFE566;
+  border-radius: 4px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.12);
+  padding: 8px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-block;
+  transform: rotate(-1.5deg);
+  color: var(--text);
+}
+
+.polaroid {
+  background: white;
+  padding: 10px 10px 32px 10px;
+  box-shadow: 3px 5px 14px rgba(0, 0, 0, 0.12);
+  border-radius: 2px;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--text);
+  font-size: 12px;
+  font-family: var(--font-body);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.washi-tape {
+  height: 22px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(200, 160, 240, 0.5),
+    rgba(200, 160, 240, 0.5) 6px,
+    rgba(255, 229, 102, 0.5) 6px,
+    rgba(255, 229, 102, 0.5) 12px
+  );
+  border-radius: 2px;
+  opacity: 0.8;
 }
