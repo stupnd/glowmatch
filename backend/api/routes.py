@@ -1,7 +1,8 @@
 import json
 import os
+import time
 
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
@@ -76,6 +77,7 @@ async def search_product(req: SearchRequest) -> dict:
     try:
         raw_results: list[dict] = []
 
+        time.sleep(1)
         with DDGS() as ddgs:
             images = list(ddgs.images(
                 f"{query} lip product official",
@@ -105,7 +107,7 @@ Return ONLY a JSON array, no markdown:
 Extract brand separately. Keep imageUrl as-is. Max 4 results."""
 
         message = claude_client.messages.create(
-            model="claude-sonnet-4-20250514",
+            model="claude-sonnet-4-5",
             max_tokens=500,
             messages=[{"role": "user", "content": parse_prompt}],
         )
