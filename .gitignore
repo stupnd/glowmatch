@@ -208,5 +208,7 @@ __marimo__/
 backend/ml/data/
 backend/.venv/
 frontend/node_modules/
-backend/.venv/
-frontend/node_modules/
+
+# Unignore frontend/lib (overrides the Python lib/ rule above)
+!frontend/lib/
+!frontend/lib/**
