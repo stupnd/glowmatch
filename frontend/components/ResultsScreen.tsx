@@ -1,10 +1,10 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { motion } from "framer-motion"
 import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
-import type { Results } from "@/app/page"
+import type { Results, ShadeRec } from "@/app/page"
 import { Sticker, SwatchSticker, type StickerProps } from "./Stickers"
 
 interface Props {
@@ -25,6 +25,29 @@ const CARD_STICKERS: CardStickerConfig[] = [
   { type: "star",    color: "#C4A8F0", rotate: 20  },
 ]
 
+type Category = "foundation" | "concealer" | "blush" | "bronzer" | "lip"
+
+const CATEGORIES: { key: Category; label: string }[] = [
+  { key: "foundation", label: "Foundation" },
+  { key: "concealer",  label: "Concealer"  },
+  { key: "blush",      label: "Blush"      },
+  { key: "bronzer",    label: "Bronzer"    },
+  { key: "lip",        label: "Lip"        },
+]
+
+const CATEGORY_COLORS: Record<Category, { color: string; border: string; bg: string }> = {
+  foundation: { color: "#CC5A30", border: "#FF8C69", bg: "rgba(255,140,105,0.12)" },
+  concealer:  { color: "#B89A00", border: "#FFE566", bg: "rgba(255,229,102,0.15)" },
+  blush:      { color: "#B83050", border: "#E85D75", bg: "rgba(232,93,117,0.12)"  },
+  bronzer:    { color: "#A06010", border: "#E8A020", bg: "rgba(232,160,32,0.12)"  },
+  lip:        { color: "#7B52C4", border: "#C4A8F0", bg: "rgba(196,168,240,0.14)" },
+}
+
+const PRODUCT_STICKERS: CardStickerConfig[] = [
+  { type: "leaf",   color: "#6DBF8A", rotate: -8 },
+  { type: "flower", color: "#E85D75", rotate: 12 },
+]
+
 function undertoneStyle(undertone: string): { color: string } {
   const u = undertone.toLowerCase()
   if (u.includes("warm")) return { color: "#CC5A30" }
@@ -38,6 +61,8 @@ export default function ResultsScreen({ results, onReset }: Props) {
   const heroRef          = useRef<HTMLDivElement>(null)
   const shadesHeadingRef = useRef<HTMLDivElement>(null)
   const mstCounterRef    = useRef<HTMLSpanElement>(null)
+
+  const [activeCategory, setActiveCategory] = useState<Category>("foundation")
 
   useGSAP(
     () => {
@@ -60,6 +85,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
   )
 
   const utStyle = undertoneStyle(results.undertone)
+  const activePicks: ShadeRec[] = results.recommendations[activeCategory] ?? []
 
   return (
     <div ref={containerRef} className="animated-bg min-h-screen py-16 px-4">
@@ -167,7 +193,7 @@ export default function ResultsScreen({ results, onReset }: Props) {
         </div>
 
         {/* Shade cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16">
           {results.matched_shades.map((shade, i) => (
             <ShadeCard
               key={shade.shade_name}
@@ -177,6 +203,74 @@ export default function ResultsScreen({ results, onReset }: Props) {
               sticker={CARD_STICKERS[i]}
             />
           ))}
+        </div>
+
+        {/* ── Beauty picks section ── */}
+        <div className="mb-12">
+          {/* Section header */}
+          <div className="mb-6">
+            <h2
+              style={{
+                fontFamily: "var(--font-display), serif",
+                fontSize: 28, fontWeight: 400, color: "var(--text)", marginBottom: 8,
+                display: "flex", alignItems: "center", gap: 8,
+              }}
+            >
+              your beauty picks
+              <Sticker type="sparkle" size={20} color="#E8A020" rotate={10} style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </h2>
+            <span className="sticky-note" style={{ transform: "rotate(0.8deg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              across foundation, concealer, blush, bronzer + lip
+              <Sticker type="ribbon" size={14} color="#E85D75" rotate={-5} style={{ display: "inline-block", verticalAlign: "middle" }} />
+            </span>
+          </div>
+
+          {/* Category tabs */}
+          <div
+            className="flex gap-2 mb-8 overflow-x-auto pb-1"
+            style={{ scrollbarWidth: "none" }}
+          >
+            {CATEGORIES.map(({ key, label }) => {
+              const isActive = activeCategory === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveCategory(key)}
+                  className="tag-pill cursor-pointer flex-shrink-0"
+                  style={{
+                    background: isActive ? "var(--rose)" : "rgba(255,255,255,0.80)",
+                    color:      isActive ? "#fff"        : "var(--text-muted)",
+                    borderColor: isActive ? "var(--rose)" : "rgba(0,0,0,0.15)",
+                    fontWeight: isActive ? 600 : 500,
+                    transition: "background 0.2s, color 0.2s",
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Product cards */}
+          {activePicks.length === 0 ? (
+            <div className="flex justify-center">
+              <span className="sticky-note" style={{ transform: "rotate(-0.5deg)" }}>
+                still analyzing... check back!
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              {activePicks.map((rec, i) => (
+                <ProductCard
+                  key={`${rec.brand}-${rec.shade}-${i}`}
+                  rec={rec}
+                  category={activeCategory}
+                  index={i}
+                  sticker={PRODUCT_STICKERS[i % PRODUCT_STICKERS.length]}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Reset */}
@@ -246,6 +340,83 @@ function ShadeCard({
       {/* Recommendation as sticky-note */}
       <div className="sticky-note" style={{ transform: "rotate(1deg)", fontSize: 12, display: "block" }}>
         {shade.recommendation}
+      </div>
+    </motion.div>
+  )
+}
+
+// ── ProductCard ───────────────────────────────────────────────────────────────
+
+function ProductCard({
+  rec, category, index, sticker,
+}: {
+  rec: ShadeRec
+  category: Category
+  index: number
+  sticker: CardStickerConfig
+}) {
+  const catStyle = CATEGORY_COLORS[category]
+  const rotation = index % 2 === 0 ? "-0.8deg" : "0.8deg"
+  const noteRotation = index % 2 === 0 ? "0.8deg" : "-0.8deg"
+
+  return (
+    <motion.div
+      key={category}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+      whileHover={{ scale: 1.02, y: -3 }}
+      className="polaroid relative"
+      style={{ transform: `rotate(${rotation})` }}
+    >
+      {/* Corner sticker */}
+      <div className="absolute top-2 right-2 pointer-events-none select-none">
+        <Sticker type={sticker.type} size={18} color={sticker.color} rotate={sticker.rotate} />
+      </div>
+
+      {/* Brand */}
+      <p style={{
+        fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-muted)",
+        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4,
+      }}>
+        {rec.brand}
+      </p>
+
+      {/* Product name */}
+      <h3 style={{
+        fontFamily: "var(--font-display), serif", fontSize: 18,
+        fontWeight: 400, color: "var(--text)", marginBottom: 8, lineHeight: 1.2,
+      }}>
+        {rec.product}
+      </h3>
+
+      {/* Shade pill + price */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <span
+          className="tag-pill"
+          style={{
+            color: catStyle.color,
+            borderColor: catStyle.border,
+            background: catStyle.bg,
+            fontSize: 11, fontWeight: 600,
+          }}
+        >
+          {rec.shade}
+        </span>
+        <span style={{
+          fontFamily: "var(--font-body)", fontSize: 13,
+          color: "var(--sage)", fontWeight: 600, letterSpacing: "0.05em",
+        }}>
+          {rec.price_range}
+        </span>
+      </div>
+
+      {/* Why sticky-note */}
+      <div
+        className="sticky-note"
+        style={{ transform: `rotate(${noteRotation})`, fontSize: 11, display: "block", lineHeight: 1.5 }}
+      >
+        {rec.why}
       </div>
     </motion.div>
   )

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
-from api.claude_recommendations import get_shade_recommendations
+from api.claude_recommendations import get_full_beauty_recommendations
 from detection.face_detection import extract_skin_pixels
 from detection.monk_classifier import classify_monk
 from detection.shade_matcher import match_shades
@@ -30,17 +30,14 @@ async def analyze(file: UploadFile = File(...)) -> dict:
     matched_shades = match_shades(result["monk_scale"], result["undertone"])
 
     try:
-        recommendations = get_shade_recommendations(
-            result["monk_scale"],
-            result["undertone"],
-            result["avg_hex"],
-            matched_shades,
+        beauty_recs = get_full_beauty_recommendations(
+            monk_scale=result["monk_scale"],
+            undertone=result["undertone"],
+            avg_hex=result["avg_hex"],
         )
-        for shade, rec in zip(matched_shades, recommendations):
-            shade["recommendation"] = rec
-    except Exception:
-        for shade in matched_shades:
-            shade["recommendation"] = shade.get("description", "")
+    except Exception as e:
+        print(f"Claude recommendations failed: {e}")
+        beauty_recs = {}
 
     return {
         "pixel_count": len(pixels),
@@ -48,4 +45,5 @@ async def analyze(file: UploadFile = File(...)) -> dict:
         "undertone": result["undertone"],
         "avg_hex": result["avg_hex"],
         "matched_shades": matched_shades,
+        "recommendations": beauty_recs,
     }

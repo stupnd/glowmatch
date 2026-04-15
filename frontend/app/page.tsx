@@ -7,6 +7,14 @@ import ResultsScreen from "@/components/ResultsScreen"
 
 type AppState = "upload" | "loading" | "results"
 
+export type ShadeRec = {
+  brand: string
+  product: string
+  shade: string
+  price_range: string
+  why: string
+}
+
 // Shape returned by the FastAPI /analyze endpoint.
 type ApiResponse = {
   pixel_count: number
@@ -14,10 +22,15 @@ type ApiResponse = {
   undertone: string
   avg_hex: string
   matched_shades: { shade_name: string; hex: string; description: string }[]
+  recommendations?: {
+    foundation?: ShadeRec[]
+    concealer?: ShadeRec[]
+    blush?: ShadeRec[]
+    bronzer?: ShadeRec[]
+    lip?: ShadeRec[]
+  }
 }
 
-// Internal Results type — matched_shades are augmented with a fallback
-// recommendation string that the API does not provide.
 export type Results = {
   pixel_count: number
   monk_scale: string
@@ -29,6 +42,13 @@ export type Results = {
     description: string
     recommendation: string
   }[]
+  recommendations: {
+    foundation?: ShadeRec[]
+    concealer?: ShadeRec[]
+    blush?: ShadeRec[]
+    bronzer?: ShadeRec[]
+    lip?: ShadeRec[]
+  }
 }
 
 const FALLBACK_RECOMMENDATIONS = [
@@ -47,6 +67,7 @@ function mapApiResponse(data: ApiResponse): Results {
       ...shade,
       recommendation: FALLBACK_RECOMMENDATIONS[i] ?? FALLBACK_RECOMMENDATIONS[0],
     })),
+    recommendations: data.recommendations ?? {},
   }
 }
 

@@ -3,46 +3,133 @@ import os
 
 import anthropic
 
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-def get_shade_recommendations(
+
+def get_full_beauty_recommendations(
     monk_scale: str,
     undertone: str,
     avg_hex: str,
-    matched_shades: list[dict],
-) -> list[str]:
+) -> dict:
     """
-    Call Claude to generate personalized recommendation text for each matched shade.
-    Returns a list of recommendation strings (one per shade, same order as matched_shades).
-    Raises on API error so the caller can fall back gracefully.
+    Call Claude to generate full beauty product recommendations
+    across foundation, concealer, blush, bronzer, and lip.
+    Returns a structured dict with recommendations per category.
     """
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-    shade_list = "\n".join(
-        f"{i+1}. {s['shade_name']} ({s['hex']})" for i, s in enumerate(matched_shades)
-    )
+    prompt = f"""You are an expert inclusive beauty advisor with deep \
+knowledge of makeup products across all price ranges and brands.
 
-    prompt = f"""You are a professional makeup artist specializing in foundation matching.
-
-A customer has the following skin profile:
-- Monk Skin Tone scale: {monk_scale}
-- Undertone: {undertone}
+A user's skin tone has been analyzed:
+- Monk Skin Tone Scale: {monk_scale} (scale of 1-10, 1=lightest, 10=deepest)
+- Undertone: {undertone} (warm/cool/neutral)
 - Skin hex color: {avg_hex}
 
-Their top matched Fenty Beauty Pro Filt'r foundation shades are:
-{shade_list}
+Give personalized product recommendations across these categories.
+For each product include: brand, product name, specific shade name, \
+price range ($/$$/$$$ for drugstore/mid/high-end), and a 1 sentence \
+reason why it works for this person's specific tone and undertone.
 
-Write a single short, warm, personalized recommendation sentence (under 20 words) for each shade above, explaining why it suits this person's specific tone and undertone. Return ONLY a JSON array of exactly {len(matched_shades)} strings, in the same order as the shades listed. No keys, no markdown, no extra text."""
+Include a mix of drugstore and high-end options.
+Be specific with shade names — use real shades that actually exist.
+Be inclusive and celebratory in tone.
+
+Respond ONLY with a JSON object in exactly this shape, \
+no preamble, no markdown, no backticks:
+
+{{
+  "foundation": [
+    {{
+      "brand": "Fenty Beauty",
+      "product": "Pro Filt'r Soft Matte",
+      "shade": "310W",
+      "price_range": "$$",
+      "why": "The warm undertone in 310W perfectly matches your golden warmth."
+    }},
+    {{
+      "brand": "Maybelline",
+      "product": "Fit Me Matte + Poreless",
+      "shade": "330 Toffee",
+      "price_range": "$",
+      "why": "A drugstore dupe that nails your depth without breaking the bank."
+    }}
+  ],
+  "concealer": [
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }},
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }}
+  ],
+  "blush": [
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }},
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }}
+  ],
+  "bronzer": [
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }},
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }}
+  ],
+  "lip": [
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }},
+    {{
+      "brand": "...",
+      "product": "...",
+      "shade": "...",
+      "price_range": "...",
+      "why": "..."
+    }}
+  ]
+}}
+
+Return exactly 2 options per category (10 products total).
+Foundation options should span drugstore to high-end.
+"""
 
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=512,
+        max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
     )
 
-    raw = message.content[0].text.strip()
-    recommendations: list[str] = json.loads(raw)
-
-    if not isinstance(recommendations, list) or len(recommendations) != len(matched_shades):
-        raise ValueError("Unexpected response shape from Claude")
-
-    return recommendations
+    text = message.content[0].text.strip()
+    text = text.replace("```json", "").replace("```", "").strip()
+    return json.loads(text)
