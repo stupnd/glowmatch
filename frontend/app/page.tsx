@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import type { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase"
 import UploadScreen from "@/components/UploadScreen"
 import LoadingScreen from "@/components/LoadingScreen"
 import ResultsScreen from "@/components/ResultsScreen"
+import AuthModal from "@/components/AuthModal"
 
 type AppState = "upload" | "loading" | "results"
 
@@ -70,11 +72,14 @@ function mapApiResponse(data: ApiResponse): Results {
 export default function Home() {
   const supabase = useMemo(() => createClient(), [])
 
-  const [state,    setState]    = useState<AppState>("upload")
-  const [results,  setResults]  = useState<Results | null>(null)
-  const [error,    setError]    = useState<string | null>(null)
-  const [budget,   setBudget]   = useState<string>("all")
-  const [user,     setUser]     = useState<User | null>(null)
+  const [state,          setState]          = useState<AppState>("upload")
+  const [results,        setResults]        = useState<Results | null>(null)
+  const [error,          setError]          = useState<string | null>(null)
+  const [budget,         setBudget]         = useState<string>("all")
+  const [user,           setUser]           = useState<User | null>(null)
+  const [showSavedToast, setShowSavedToast] = useState(false)
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false)
+  const [showAuthModal,  setShowAuthModal]  = useState(false)
 
   // Track auth state so we can save results for logged-in users
   useEffect(() => {
@@ -134,7 +139,13 @@ export default function Home() {
       const data: ApiResponse = await res.json()
       const mapped = mapApiResponse(data)
       setResults(mapped)
-      saveToHistory(mapped, budget)
+      if (user) {
+        saveToHistory(mapped, budget)
+        setShowSavedToast(true)
+        setTimeout(() => setShowSavedToast(false), 3000)
+      } else {
+        setShowAuthPrompt(true)
+      }
       apiDoneRef.current = true
       tryTransition()
     } catch (err) {
@@ -159,7 +170,7 @@ export default function Home() {
     <main className="min-h-screen">
       {state === "upload" && (
         <>
-          <UploadScreen onUpload={handleUpload} />
+          <UploadScreen onUpload={handleUpload} budget={budget} onBudgetChange={setBudget} />
           {error && (
             <div
               className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full text-sm"
@@ -180,8 +191,70 @@ export default function Home() {
         <LoadingScreen onComplete={handleLoadingComplete} />
       )}
       {state === "results" && results && (
-        <ResultsScreen results={results} onReset={handleReset} />
+        <>
+          <ResultsScreen results={results} onReset={handleReset} />
+
+          {/* Saved toast — logged in */}
+          <AnimatePresence>
+            {showSavedToast && (
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+              >
+                <span
+                  className="sticky-note"
+                  style={{ transform: "rotate(-0.5deg)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}
+                >
+                  saved to your journal! ✦
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Sign-in prompt — not logged in */}
+          <AnimatePresence>
+            {showAuthPrompt && (
+              <motion.div
+                initial={{ y: 80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 80, opacity: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3"
+                style={{
+                  background: "rgba(255,255,255,0.92)",
+                  backdropFilter: "blur(10px)",
+                  borderRadius: 9999,
+                  padding: "10px 18px",
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.14)",
+                  border: "1.5px dashed rgba(0,0,0,0.15)",
+                }}
+              >
+                <span style={{ fontFamily: "var(--font-body)", fontSize: 13, color: "var(--text-muted)" }}>
+                  sign in to save your results
+                </span>
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="tag-pill cursor-pointer"
+                  style={{ color: "var(--rose)", borderColor: "var(--rose)", fontWeight: 600, fontSize: 12 }}
+                >
+                  sign in ✦
+                </button>
+                <button
+                  onClick={() => setShowAuthPrompt(false)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 16, lineHeight: 1 }}
+                >
+                  ×
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       )}
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </main>
   )
 }

@@ -1,5 +1,6 @@
 import json
 import os
+import random
 
 import anthropic
 
@@ -42,6 +43,11 @@ def get_full_beauty_recommendations(
 
     budget_instruction = BUDGET_CONTEXT.get(budget, BUDGET_CONTEXT["all"])
 
+    seed_brands = random.sample([
+        "Rhode", "Mented", "Black Opal", "Uoma Beauty",
+        "Tower 28", "Saie", "Flower Beauty", "Black Radiance"
+    ], 3)
+
     prompt = f"""You are an expert inclusive beauty advisor with deep \
 knowledge of makeup products across all price ranges and brands.
 
@@ -52,6 +58,20 @@ A user's skin tone has been analyzed:
 
 BUDGET CONSTRAINT (strictly follow this — it is the user's top priority):
 {budget_instruction}
+
+IMPORTANT: Never recommend the same brand twice across categories combined. \
+Use a wide variety of brands. Include at least one unexpected or indie brand \
+recommendation. For each category always give one drugstore AND one mid/high-end \
+option regardless of budget filter (budget filter affects which gets listed first, \
+not exclusivity).
+Rotate between these brands across categories:
+Foundation: Fenty, Maybelline, NARS, Black Opal, Mented, Make Up For Ever, Lancôme, NYX
+Concealer: Rare Beauty, e.l.f, Tarte, NARS, Black Radiance, L'Oreal, Bobbi Brown
+Blush: Tower 28, Milani, NARS, Fenty, Saie, Glossier, MAC, Flower Beauty
+Bronzer: Fenty, Physicians Formula, Too Faced, Hoola Benefit, Rare Beauty, Milk Makeup
+Lip: Charlotte Tilbury, NYX, MAC, Fenty, Rhode, Mented, Uoma Beauty, e.l.f
+
+Try to feature at least one of these brands if appropriate for the skin tone: {seed_brands}
 
 Give personalized product recommendations across these categories.
 For each product include: brand, product name, specific shade name, \

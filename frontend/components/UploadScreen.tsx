@@ -5,9 +5,12 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
 import { Sticker, FlowerSticker, BlobSticker, SparkleSticker, HeartSticker } from "./Stickers"
+import BudgetSelector from "./BudgetSelector"
 
 interface Props {
   onUpload: (file: File) => void
+  budget: string
+  onBudgetChange: (budget: string) => void
 }
 
 const PARTICLES = [
@@ -38,7 +41,7 @@ const TIP_STYLES: Record<string, React.CSSProperties> = {
   "No filters":    { color: "#3D8A56",      borderColor: "#3D8A56",      background: "rgba(255,255,255,0.80)", fontWeight: 600 },
 }
 
-export default function UploadScreen({ onUpload }: Props) {
+export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const titleRef     = useRef<HTMLHeadingElement>(null)
   const taglineRef   = useRef<HTMLDivElement>(null)
@@ -372,6 +375,21 @@ export default function UploadScreen({ onUpload }: Props) {
                 step 1 of 1
                 <Sticker type="star" size={13} color="#E8A020" rotate={10} style={{ display: "inline-block", verticalAlign: "middle" }} />
               </span>
+            </div>
+
+            {/* Budget heading */}
+            <div className="flex justify-center mb-4">
+              <span
+                className="sticky-note"
+                style={{ transform: "rotate(-1deg)", textAlign: "center" }}
+              >
+                what&apos;s your budget?
+              </span>
+            </div>
+
+            {/* Budget selector */}
+            <div className="w-full max-w-lg mb-8">
+              <BudgetSelector selected={budget} onSelect={onBudgetChange} />
             </div>
 
             {/* Upload card */}
