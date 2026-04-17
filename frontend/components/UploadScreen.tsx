@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useGSAP } from "@gsap/react"
 import { gsap } from "gsap"
 import { ScrollTrigger } from "gsap/ScrollTrigger"
-import { FlowerSticker, HeartSticker, SwatchSticker, SparkleSticker } from "./Stickers"
+import { FlowerSticker, HeartSticker, SwatchSticker } from "./Stickers"
 import BudgetSelector from "./BudgetSelector"
 
 gsap.registerPlugin(ScrollTrigger)
@@ -16,15 +16,13 @@ interface Props {
   onBudgetChange: (budget: string) => void
 }
 
-// ── Sticky note data ─────────────────────────────────────────────────────────
 const STICKY_NOTES = [
-  { text: "finally found my shade after 3 years", rotate: "-2deg", pos: { top: "22%", left: "3%" } },
+  { text: "finally found my shade after 3 years", rotate: "-2deg",  pos: { top: "22%", left: "3%" } },
   { text: "MST-7, warm undertone ✦",              rotate: "1.5deg", pos: { top: "20%", right: "3%" } },
   { text: "my lip recipe is everything",           rotate: "-1deg",  pos: { bottom: "28%", left: "3%" } },
   { text: "matched in 30 seconds",                rotate: "2deg",   pos: { bottom: "26%", right: "3%" } },
 ]
 
-// ── Orbit items ──────────────────────────────────────────────────────────────
 const ORBIT_ITEMS = [
   { label: "Foundation", shape: "circle",    color: "#997660" },
   { label: "Lip Gloss",  shape: "oval",      color: "#E85D75" },
@@ -38,50 +36,61 @@ const ORBIT_ITEMS = [
 
 const ORBIT_PHASES = ["know your skin", "find your shades", "remember everything"]
 
-const ROW_1 = "found my shade ✦ finally matched ✦ warm undertone ✦ golden hour skin ✦ MST-6 ✦ blush moment ✦ dewy finish ✦ tinted in peach ✦ soft glam ✦   "
-const ROW_2 = "your skin your rules ✦ every tone matters ✦ shade diary ✦ glow notes ✦ beauty remembered ✦ MST-3 ✦ cool undertone ✦ glazed skin ✦ lip stain ✦   "
+const FEATURE_ACCENTS = [
+  { color: "#E85D75", glow: "rgba(232,93,117,0.28)" },
+  { color: "#E8A020", glow: "rgba(232,160,32,0.28)" },
+  { color: "#6DBF8A", glow: "rgba(109,191,138,0.28)" },
+]
 
-// ── Shape SVG ────────────────────────────────────────────────────────────────
+const ROW_1 = "found my shade ✦ finally matched ✦ warm undertone ✦ golden hour skin ✦ MST-6 ✦ blush moment ✦ dewy finish ✦ tinted in peach ✦ soft glam ✦   "
+
 function OrbitShape({ shape, color }: { shape: string; color: string }) {
-  const s = { fill: color }
-  if (shape === "circle")    return <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" {...s} /></svg>
-  if (shape === "oval")      return <svg width="36" height="48" viewBox="0 0 36 48"><ellipse cx="18" cy="24" rx="16" ry="22" {...s} /></svg>
-  if (shape === "square")    return <svg width="40" height="40" viewBox="0 0 40 40"><rect x="2" y="2" width="36" height="36" rx="6" {...s} /></svg>
-  if (shape === "rect")      return <svg width="28" height="44" viewBox="0 0 28 44"><rect x="2" y="2" width="24" height="40" rx="8" {...s} /></svg>
-  if (shape === "rect-tall") return <svg width="22" height="50" viewBox="0 0 22 50"><rect x="2" y="2" width="18" height="46" rx="6" {...s} /></svg>
-  if (shape === "line")      return <svg width="12" height="52" viewBox="0 0 12 52"><rect x="4" y="0" width="4" height="52" rx="2" {...s} /></svg>
-  return null
+  const shapeStyles: Record<string, React.CSSProperties> = {
+    circle:      { width: 40, height: 40, borderRadius: "50%" },
+    oval:        { width: 28, height: 44, borderRadius: "50%" },
+    square:      { width: 38, height: 38, borderRadius: 8 },
+    rect:        { width: 22, height: 42, borderRadius: 8 },
+    "rect-tall": { width: 16, height: 46, borderRadius: 6 },
+    line:        { width: 8,  height: 46, borderRadius: 4 },
+  }
+  return (
+    <div
+      style={{
+        ...(shapeStyles[shape] ?? shapeStyles.circle),
+        background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 55%), ${color}`,
+        boxShadow: "inset -2px -3px 8px rgba(0,0,0,0.22), inset 1px 2px 6px rgba(255,255,255,0.3)",
+      }}
+    />
+  )
 }
 
 export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props) {
-  const containerRef    = useRef<HTMLDivElement>(null)
-  const heroTitleRef    = useRef<HTMLHeadingElement>(null)
-  const heroSubRef      = useRef<HTMLParagraphElement>(null)
-  const heroCTARef      = useRef<HTMLDivElement>(null)
-  const heroMicroRef    = useRef<HTMLParagraphElement>(null)
-  const stickyRefs      = useRef<(HTMLDivElement | null)[]>([])
-  const orbitSectionRef = useRef<HTMLDivElement>(null)
-  const orbitGroupRef   = useRef<HTMLDivElement>(null)
-  const orbitItemRefs   = useRef<(HTMLDivElement | null)[]>([])
-  const phaseRefs       = useRef<(HTMLDivElement | null)[]>([])
-  const featureRefs     = useRef<(HTMLDivElement | null)[]>([])
-  const uploadSectionRef= useRef<HTMLDivElement>(null)
-  const fileInputRef    = useRef<HTMLInputElement>(null)
+  const containerRef     = useRef<HTMLDivElement>(null)
+  const heroTitleRef     = useRef<HTMLHeadingElement>(null)
+  const heroSubRef       = useRef<HTMLParagraphElement>(null)
+  const heroCTARef       = useRef<HTMLDivElement>(null)
+  const heroMicroRef     = useRef<HTMLParagraphElement>(null)
+  const stickyRefs       = useRef<(HTMLDivElement | null)[]>([])
+  const orbitSectionRef  = useRef<HTMLDivElement>(null)
+  const orbitGroupRef    = useRef<HTMLDivElement>(null)
+  const orbitItemRefs    = useRef<(HTMLDivElement | null)[]>([])
+  const phaseRefs        = useRef<(HTMLDivElement | null)[]>([])
+  const featureRefs      = useRef<(HTMLDivElement | null)[]>([])
+  const uploadSectionRef = useRef<HTMLDivElement>(null)
+  const fileInputRef     = useRef<HTMLInputElement>(null)
 
   // Camera refs
   const videoRef  = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const [showUpload,    setShowUpload]    = useState(false)
-  const [isDragging,    setIsDragging]    = useState(false)
-  const [isCameraOpen,  setIsCameraOpen]  = useState(false)
-  const [facingMode,    setFacingMode]    = useState<"user" | "environment">("user")
-  const [cameraError,   setCameraError]   = useState<string | null>(null)
-  const [previewSrc,    setPreviewSrc]    = useState<string | null>(null)
-  const [fileSelected,  setFileSelected]  = useState(false)
+  const [isDragging,   setIsDragging]   = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
+  const [facingMode,   setFacingMode]   = useState<"user" | "environment">("user")
+  const [cameraError,  setCameraError]  = useState<string | null>(null)
+  const [previewSrc,   setPreviewSrc]   = useState<string | null>(null)
+  const [fileSelected, setFileSelected] = useState(false)
 
-  // ── Camera stream lifecycle ──────────────────────────────────────────────
   useEffect(() => {
     if (!isCameraOpen) return
     let cancelled = false
@@ -128,7 +137,6 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
     }, "image/jpeg", 0.9)
   }, [onUpload])
 
-  // ── File handlers ────────────────────────────────────────────────────────
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (file) onUpload(file)
   }, [onUpload])
@@ -139,23 +147,18 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
   }, [onUpload])
 
   const handleCTAClick = useCallback(() => {
-    setShowUpload(true)
     setTimeout(() => {
       document.getElementById("upload-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
     }, 100)
   }, [])
 
-  // ── GSAP animations ──────────────────────────────────────────────────────
   useGSAP(() => {
-    // Hero entrance
-    const heroTl = gsap.timeline()
-    heroTl
-      .fromTo(heroTitleRef.current,  { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1,    ease: "power3.out" })
-      .fromTo(heroSubRef.current,    { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8,  ease: "power2.out" }, "-=0.5")
-      .fromTo(heroCTARef.current,    { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7,  ease: "power2.out" }, "-=0.4")
+    gsap.timeline()
+      .fromTo(heroTitleRef.current,  { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1,   ease: "power3.out" })
+      .fromTo(heroSubRef.current,    { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }, "-=0.5")
+      .fromTo(heroCTARef.current,    { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, "-=0.4")
       .fromTo(heroMicroRef.current,  { opacity: 0 },        { opacity: 1, duration: 0.5 }, "-=0.2")
 
-    // Sticky notes drift in staggered
     stickyRefs.current.forEach((el, i) => {
       if (!el) return
       gsap.fromTo(el,
@@ -164,10 +167,8 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
       )
     })
 
-    // ── Orbit section scroll animation ────────────────────────────────────
     if (!orbitSectionRef.current || !orbitGroupRef.current) return
 
-    // Rotate entire orbit on scroll
     gsap.to(orbitGroupRef.current, {
       rotation: 360,
       ease: "none",
@@ -179,7 +180,6 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
       },
     })
 
-    // Each orbit item counter-rotates so labels stay upright
     orbitItemRefs.current.forEach((item) => {
       if (!item) return
       gsap.to(item, {
@@ -194,11 +194,10 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
       })
     })
 
-    // Phase text: fade between phases based on scroll progress
     const phaseCount = phaseRefs.current.length
     if (phaseCount > 0) {
-      gsap.set(phaseRefs.current[0], { opacity: 1 })
-      gsap.set(phaseRefs.current.slice(1), { opacity: 0 })
+      gsap.set(phaseRefs.current[0], { opacity: 1, scale: 1 })
+      gsap.set(phaseRefs.current.slice(1), { opacity: 0, scale: 0.92 })
 
       ScrollTrigger.create({
         trigger: orbitSectionRef.current,
@@ -208,120 +207,140 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
         onUpdate: (self) => {
           const prog = self.progress
           const phaseIdx = prog < 0.33 ? 0 : prog < 0.66 ? 1 : 2
+
           phaseRefs.current.forEach((el, i) => {
             if (!el) return
-            gsap.to(el, { opacity: i === phaseIdx ? 1 : 0, duration: 0.3 })
+            gsap.to(el, { opacity: i === phaseIdx ? 1 : 0, scale: i === phaseIdx ? 1 : 0.92, duration: 0.35 })
           })
 
-          // Scale items based on phase proximity
           orbitItemRefs.current.forEach((el, i) => {
             if (!el) return
             const groupSize = Math.ceil(ORBIT_ITEMS.length / 3)
-            const itemPhase = Math.floor(i / groupSize)
-            const isActive = itemPhase === phaseIdx
-            gsap.to(el, {
-              scale: isActive ? 1.2 : 0.8,
-              opacity: isActive ? 1 : 0.5,
-              duration: 0.4,
-            })
+            const isActive = Math.floor(i / groupSize) === phaseIdx
+            const baseAngle = (i / ORBIT_ITEMS.length) * Math.PI * 2 - Math.PI / 2
+            const tiltY = Math.sin(baseAngle + prog * Math.PI * 2) * 18
+            gsap.to(el, { scale: isActive ? 1.2 : 0.8, opacity: isActive ? 1 : 0.5, rotationY: tiltY, duration: 0.4 })
           })
         },
       })
     }
 
-    // Feature cards scroll-in
     featureRefs.current.forEach((el, i) => {
       if (!el) return
       gsap.fromTo(el,
         { opacity: 0, y: 50 },
         {
           opacity: 1, y: 0, duration: 0.7, ease: "power2.out",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 85%",
-            toggleActions: "play none none none",
-          },
+          scrollTrigger: { trigger: el, start: "top 85%", toggleActions: "play none none none" },
           delay: i * 0.15,
         }
       )
     })
 
-    // Upload section entrance
     if (uploadSectionRef.current) {
       gsap.fromTo(uploadSectionRef.current,
         { opacity: 0, y: 40 },
         {
           opacity: 1, y: 0, duration: 0.8, ease: "power2.out",
-          scrollTrigger: {
-            trigger: uploadSectionRef.current,
-            start: "top 85%",
-            toggleActions: "play none none none",
-          },
+          scrollTrigger: { trigger: uploadSectionRef.current, start: "top 85%", toggleActions: "play none none none" },
         }
       )
     }
   }, { scope: containerRef })
 
-  // ── Orbit radius (responsive) ────────────────────────────────────────────
   const orbitRadius = typeof window !== "undefined" && window.innerWidth < 768 ? 130 : 200
 
   return (
-    <div
-      ref={containerRef}
-      style={{ background: "#FFF9F5", minHeight: "100vh", overflowX: "hidden" }}
-    >
-      {/* ════════════════════════════════════════════════════════════
-          SECTION 1 — HERO
-      ════════════════════════════════════════════════════════════ */}
-      <section
-        style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", position: "relative", padding: "0 1rem" }}
-      >
+    <div ref={containerRef} style={{ background: "#FFF9F5", minHeight: "100vh", overflowX: "hidden" }}>
+      <style>{`
+        @keyframes scrollLineGrow {
+          0%   { transform: scaleY(0); opacity: 1; }
+          70%  { transform: scaleY(1); opacity: 0.8; }
+          100% { transform: scaleY(1); opacity: 0; }
+        }
+        @keyframes scrollDotPulse {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.6); }
+        }
+      `}</style>
+
+      {/* ── SECTION 1: HERO ─────────────────────────────────────────── */}
+      <section style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+        padding: "0 1rem",
+      }}>
+        {/* Video background */}
+        <video
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_083109_283f3553-e28f-428b-a723-d639c617eb2b.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 0 }}
+        />
+
+        {/* Dark gradient overlay */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.5) 100%)",
+          zIndex: 1,
+        }} />
+
         {/* Floating sticky notes — desktop only */}
         {STICKY_NOTES.map((note, i) => (
           <div
             key={i}
             ref={(el) => { stickyRefs.current[i] = el }}
             className="hidden md:block"
-            style={{
-              position: "absolute",
-              ...note.pos,
-              zIndex: 5,
-              opacity: 0,
-              maxWidth: 180,
-            }}
+            style={{ position: "absolute", ...note.pos, zIndex: 5, opacity: 0, maxWidth: 180 }}
           >
-            <div
-              style={{
-                background: "#FFE566",
-                borderRadius: 4,
-                boxShadow: "2px 3px 8px rgba(0,0,0,0.13)",
-                padding: "10px 16px",
-                fontFamily: "var(--font-body)",
-                fontSize: 12,
-                fontWeight: 500,
-                color: "#1A1612",
-                transform: `rotate(${note.rotate})`,
-                lineHeight: 1.5,
-              }}
-            >
+            <div style={{
+              background: "#FFE566",
+              borderRadius: 4,
+              boxShadow: "2px 4px 14px rgba(0,0,0,0.28)",
+              padding: "10px 16px",
+              fontFamily: "var(--font-body)",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#1A1612",
+              transform: `rotate(${note.rotate})`,
+              lineHeight: 1.5,
+            }}>
               {note.text}
             </div>
           </div>
         ))}
 
         {/* Hero content */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", maxWidth: 640, width: "100%", zIndex: 10, position: "relative" }}>
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          maxWidth: 640,
+          width: "100%",
+          zIndex: 10,
+          position: "relative",
+        }}>
           <h1
             ref={heroTitleRef}
             style={{
               fontFamily: "var(--font-display), serif",
               fontSize: "clamp(72px, 10vw, 120px)",
               fontWeight: 400,
-              color: "#1A1612",
+              color: "white",
               lineHeight: 1,
               letterSpacing: "-0.02em",
               marginBottom: "1rem",
               opacity: 0,
+              textShadow: "0 2px 40px rgba(0,0,0,0.3)",
             }}
           >
             Tinted.
@@ -332,7 +351,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
             style={{
               fontFamily: "var(--font-body)",
               fontSize: "1.25rem",
-              color: "#6B5E57",
+              color: "rgba(255,255,255,0.85)",
               fontWeight: 400,
               letterSpacing: "0.05em",
               marginBottom: "2.5rem",
@@ -345,7 +364,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
           <div ref={heroCTARef} style={{ opacity: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
             <motion.button
               onClick={handleCTAClick}
-              whileHover={{ scale: 1.03, boxShadow: "0 8px 32px rgba(232,93,117,0.45)" }}
+              whileHover={{ scale: 1.03, boxShadow: "0 8px 40px rgba(232,93,117,0.65), 0 0 0 4px rgba(255,255,255,0.18)" }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.2 }}
               style={{
@@ -358,7 +377,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
                 borderRadius: 9999,
                 padding: "16px 40px",
                 cursor: "pointer",
-                boxShadow: "0 4px 20px rgba(232,93,117,0.30)",
+                boxShadow: "0 4px 24px rgba(232,93,117,0.45)",
               }}
             >
               find your shade →
@@ -370,7 +389,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
             style={{
               fontFamily: "var(--font-body)",
               fontSize: "0.75rem",
-              color: "#9B8E87",
+              color: "rgba(255,255,255,0.6)",
               marginTop: "1rem",
               opacity: 0,
             }}
@@ -379,29 +398,38 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
           </p>
         </div>
 
-        {/* Scroll indicator */}
-        <motion.div
-          style={{
-            position: "absolute",
-            bottom: "2rem",
-            left: "50%",
-            transform: "translateX(-50%)",
-            fontFamily: "var(--font-body)",
-            fontSize: "0.75rem",
-            color: "#9B8E87",
-            letterSpacing: "0.06em",
-            zIndex: 10,
-          }}
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        >
-          scroll to explore ↓
-        </motion.div>
+        {/* Scroll indicator — vertical line + pulsing dot */}
+        <div style={{
+          position: "absolute",
+          bottom: "2rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 6,
+          zIndex: 10,
+        }}>
+          <div style={{ width: 1, height: 40, background: "rgba(255,255,255,0.12)", position: "relative", overflow: "hidden" }}>
+            <div style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(255,255,255,0.45)",
+              transformOrigin: "top center",
+              animation: "scrollLineGrow 2.2s ease-in-out infinite",
+            }} />
+          </div>
+          <div style={{
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.45)",
+            animation: "scrollDotPulse 2.2s ease-in-out infinite",
+          }} />
+        </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════
-          TICKER STRIP (editorial dark)
-      ════════════════════════════════════════════════════════════ */}
+      {/* ── TICKER STRIP ────────────────────────────────────────────── */}
       <div style={{ background: "#1A1612", overflow: "hidden", padding: "14px 0" }}>
         <motion.div
           style={{ display: "flex", whiteSpace: "nowrap", width: "fit-content" }}
@@ -409,26 +437,37 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
           transition={{ duration: 28, repeat: Infinity, ease: "linear", repeatType: "loop" }}
         >
           {[ROW_1, ROW_1, ROW_1].map((text, i) => (
-            <span
-              key={i}
-              style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "#FFF9F5", opacity: 0.75, fontWeight: 400, letterSpacing: "0.04em" }}
-            >
+            <span key={i} style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "#FFF9F5", opacity: 0.75, fontWeight: 400, letterSpacing: "0.04em" }}>
               {text}
             </span>
           ))}
         </motion.div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════
-          SECTION 2 — SCROLL-DRIVEN MAKEUP ORBIT
-      ════════════════════════════════════════════════════════════ */}
-      <div ref={orbitSectionRef} style={{ height: "300vh", position: "relative" }}>
-        <div style={{ position: "sticky", top: 0, height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      {/* Dark → cream gradient bridge */}
+      <div style={{ height: 80, background: "linear-gradient(to bottom, #1A1612 0%, #FFF9F5 100%)" }} />
 
-          {/* Orbit group — this rotates on scroll */}
+      {/* ── SECTION 2: SCROLL-DRIVEN ORBIT ──────────────────────────── */}
+      <div ref={orbitSectionRef} style={{ height: "300vh", position: "relative", background: "#FFF9F5" }}>
+        <div style={{
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          perspective: "1000px",
+        }}>
+          {/* Orbit group — rotates on scroll */}
           <div
             ref={orbitGroupRef}
-            style={{ position: "relative", width: orbitRadius * 2 + 100, height: orbitRadius * 2 + 100 }}
+            style={{
+              position: "relative",
+              width: orbitRadius * 2 + 120,
+              height: orbitRadius * 2 + 120,
+              transformStyle: "preserve-3d",
+            }}
           >
             {ORBIT_ITEMS.map((item, i) => {
               const angle = (i / ORBIT_ITEMS.length) * Math.PI * 2 - Math.PI / 2
@@ -450,18 +489,17 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
                     willChange: "transform",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      background: "white",
-                      borderRadius: 16,
-                      boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
+                  <div style={{
+                    width: 76,
+                    height: 76,
+                    background: "rgba(255,255,255,0.92)",
+                    backdropFilter: "blur(10px)",
+                    borderRadius: 20,
+                    boxShadow: "0 10px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
                     <OrbitShape shape={item.shape} color={item.color} />
                   </div>
                   <span style={{ fontFamily: "var(--font-body)", fontSize: 9, color: "#6B5E57", fontWeight: 600, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>
@@ -472,7 +510,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
             })}
           </div>
 
-          {/* Center phase text — overlaid on orbit */}
+          {/* Phase text — overlaid, morphs on scroll */}
           <div style={{ position: "absolute", pointerEvents: "none", textAlign: "center" }}>
             {ORBIT_PHASES.map((phase, i) => (
               <div
@@ -484,7 +522,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
                   left: i === 0 ? undefined : "50%",
                   transform: i === 0 ? undefined : "translate(-50%, -50%)",
                   fontFamily: "var(--font-display), serif",
-                  fontSize: "clamp(28px, 4vw, 48px)",
+                  fontSize: "clamp(48px, 8vw, 96px)",
                   fontWeight: 400,
                   color: "#1A1612",
                   whiteSpace: "nowrap",
@@ -498,20 +536,16 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════════
-          SECTION 3 — FEATURE HIGHLIGHTS
-      ════════════════════════════════════════════════════════════ */}
+      {/* ── SECTION 3: FEATURE HIGHLIGHTS ───────────────────────────── */}
       <section style={{ padding: "100px 1.5rem", maxWidth: 1100, margin: "0 auto" }}>
-        <h2
-          style={{
-            fontFamily: "var(--font-display), serif",
-            fontSize: "clamp(28px, 4vw, 36px)",
-            fontWeight: 400,
-            color: "#1A1612",
-            textAlign: "center",
-            marginBottom: "3.5rem",
-          }}
-        >
+        <h2 style={{
+          fontFamily: "var(--font-display), serif",
+          fontSize: "clamp(28px, 4vw, 36px)",
+          fontWeight: 400,
+          color: "#1A1612",
+          textAlign: "center",
+          marginBottom: "3.5rem",
+        }}>
           everything you need
         </h2>
 
@@ -532,60 +566,73 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
               title: "lip recipe builder",
               desc: "Build shareable lip combos from real products. Export as a Story-ready card.",
             },
-          ].map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              ref={(el) => { featureRefs.current[i] = el as HTMLDivElement | null }}
-              whileHover={{ y: -4, boxShadow: "0 12px 40px rgba(0,0,0,0.10)" }}
-              transition={{ duration: 0.2 }}
-              style={{
-                background: "white",
-                borderRadius: 24,
-                padding: "2rem",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                border: "1px solid rgba(0,0,0,0.06)",
-                opacity: 0,
-              }}
-            >
-              <div style={{ marginBottom: "1.25rem" }}>{feature.icon}</div>
-              <h3 style={{ fontFamily: "var(--font-display), serif", fontSize: "1.5rem", fontWeight: 400, color: "#1A1612", marginBottom: "0.75rem" }}>
-                {feature.title}
-              </h3>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: "0.9375rem", color: "#6B5E57", lineHeight: 1.65 }}>
-                {feature.desc}
-              </p>
-            </motion.div>
-          ))}
+          ].map((feature, i) => {
+            const accent = FEATURE_ACCENTS[i]
+            return (
+              <motion.div
+                key={feature.title}
+                ref={(el) => { featureRefs.current[i] = el as HTMLDivElement | null }}
+                whileHover={{
+                  y: -6,
+                  boxShadow: `0 20px 60px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.04), 0 -4px 20px ${accent.glow}`,
+                }}
+                transition={{ duration: 0.25 }}
+                style={{
+                  background: "white",
+                  borderRadius: 24,
+                  padding: "2.5rem",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  borderTop: `3px solid ${accent.color}`,
+                  opacity: 0,
+                }}
+              >
+                <div style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: "50%",
+                  background: `${accent.color}20`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: "1.5rem",
+                }}>
+                  {feature.icon}
+                </div>
+                <h3 style={{ fontFamily: "var(--font-display), serif", fontSize: "1.5rem", fontWeight: 400, color: "#1A1612", marginBottom: "0.75rem" }}>
+                  {feature.title}
+                </h3>
+                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.9375rem", color: "#6B5E57", lineHeight: 1.65 }}>
+                  {feature.desc}
+                </p>
+              </motion.div>
+            )
+          })}
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════════
-          SECTION 4 — UPLOAD REVEAL
-      ════════════════════════════════════════════════════════════ */}
+      {/* ── SECTION 4: UPLOAD REVEAL ─────────────────────────────────── */}
       <section
         id="upload-section"
         ref={uploadSectionRef}
         style={{ padding: "80px 1.5rem 120px", display: "flex", flexDirection: "column", alignItems: "center", opacity: 0 }}
       >
-        <h2
-          style={{
-            fontFamily: "var(--font-display), serif",
-            fontSize: "clamp(24px, 4vw, 36px)",
-            fontWeight: 400,
-            color: "#1A1612",
-            textAlign: "center",
-            marginBottom: "2rem",
-          }}
-        >
+        <h2 style={{
+          fontFamily: "var(--font-display), serif",
+          fontSize: "clamp(24px, 4vw, 36px)",
+          fontWeight: 400,
+          color: "#1A1612",
+          textAlign: "center",
+          marginBottom: "2rem",
+        }}>
           ready to find your shade?
         </h2>
 
-        {/* Upload card — always visible */}
         <div style={{ width: "100%", maxWidth: 480, marginBottom: "2rem" }}>
           <motion.div
             animate={{
               borderColor: isDragging ? "rgba(232,93,117,0.5)" : "rgba(0,0,0,0.08)",
-              backgroundColor: isDragging ? "rgba(255,255,255,0.98)" : "white",
+              backgroundColor: isDragging ? "rgba(255,255,255,0.98)" : "#FFFFFF",
             }}
             transition={{ duration: 0.2 }}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
@@ -663,9 +710,8 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
           </motion.div>
         </div>
 
-        {/* Budget selector — appears after file selected */}
         <AnimatePresence>
-          {(fileSelected || showUpload) && (
+          {fileSelected && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -678,7 +724,6 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
           )}
         </AnimatePresence>
 
-        {/* Tips */}
         <div style={{ marginTop: "2rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", justifyContent: "center" }}>
           {["Face forward", "Natural light", "No filters"].map((tip) => (
             <span
@@ -702,7 +747,7 @@ export default function UploadScreen({ onUpload, budget, onBudgetChange }: Props
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
 
-      {/* ── Camera modal ── */}
+      {/* ── CAMERA MODAL ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {isCameraOpen && (
           <motion.div
