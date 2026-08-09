@@ -85,6 +85,7 @@ def get_full_beauty_recommendations(
         f"{undertone} undertone, approximate skin hex {avg_hex}. "
         "Return ONLY a JSON object, no preamble, no markdown fences."
     )
+    record_claude_usage(message)
 
     budget_rule = _BUDGET_RULES.get(budget, _BUDGET_RULES["all"])
 
