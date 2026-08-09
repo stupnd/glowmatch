@@ -1,18 +1,10 @@
 import type { Metadata } from "next"
-import { DM_Serif_Display, Plus_Jakarta_Sans } from "next/font/google"
+import { Inter } from "next/font/google"
 import "./globals.css"
-import AuthButton from "@/components/AuthButton"
 
-const dmSerif = DM_Serif_Display({
-  variable: "--font-display",
+const inter = Inter({
   subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-})
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-body",
-  subsets: ["latin"],
+  variable: "--font-inter",
   display: "swap",
 })
 
@@ -23,26 +15,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${dmSerif.variable} ${jakarta.variable}`}>
-      <body className="min-h-screen">
-        {/* Fixed auth button — top-right, above everything */}
-        <div className="fixed top-4 right-4 z-50">
-          <AuthButton />
-        </div>
-        {/* Centered lip combo nav link */}
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-          <a
-            href="/lip-combo"
-            className="tag-pill"
-            style={{
-              color: "var(--lilac)", borderColor: "var(--lilac)",
-              background: "rgba(255,255,255,0.88)",
-              fontSize: 13, fontWeight: 500, textDecoration: "none",
-            }}
-          >
-            lip combo ✦
-          </a>
-        </div>
+    <html lang="en" className={inter.variable}>
+      <body className="min-h-screen bg-[#0d0d0d] text-white antialiased">
         {children}
       </body>
     </html>

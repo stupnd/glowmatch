@@ -1,229 +1,180 @@
 """Monk Skin Tone Scale classification and undertone detection.
 
+Reference
+---------
+Monk, E. et al. (2023) "An Open Benchmark for Skin Tone Research:
+The Monk Skin Tone (MST) Scale."  https://arxiv.org/abs/2205.06694
+
 Classification strategy
 -----------------------
-When a trained model is available at ml/monk_classifier.pt:
+Pure LAB nearest-neighbour against the 10 MST reference values derived from
+the paper's canonical sRGB hex codes.  No ML model required — the upstream
+gray-world white balance + CLAHE normalisation makes the raw LAB measurement
+reliable enough for direct distance matching.
 
-  1. MobileNetV3-Small (3-class coarse model) classifies the face crop into
-     White / Brown / Black regardless of lighting conditions.
-  2. That coarse class constrains the MST search to a sub-range:
-       White → MST-1 .. MST-3
-       Brown → MST-4 .. MST-7
-       Black → MST-8 .. MST-10
-  3. Within the constrained range the existing LAB-distance rule selects the
-     exact MST level from the average skin-pixel colour.
-
-This prevents warm studio lighting from pushing a fair-skinned person's
-average colour into the MST-6 neighbourhood (Brown), because the model
-correctly identifies the face as White first.
-
-Undertone detection always uses the LAB approach (unchanged).
-
-When the model file is absent, the original full-range LAB-distance
-classifier is used as a fallback so the API continues to work without
-requiring PyTorch.
+Undertone strategy
+------------------
+Uses per-MST-range thresholds on (b* − a*) / (a* − b*) in OpenCV uint8 LAB
+space because the a*/b* spread is compressed at the pale (MST 1–3) and deep
+(MST 8–10) ends of the scale.  A single threshold misclassifies both extremes.
 """
 
 from __future__ import annotations
 
 import cv2
 import numpy as np
-from pathlib import Path
+
+from detection.face_detection import SkinSample
 
 # ---------------------------------------------------------------------------
-# Official Monk Skin Tone Scale hex values
+# Monk Skin Tone Scale — canonical sRGB reference values
+#
+# Source: Monk et al. (2023), Table 1 / Appendix A.
+# Ordered MST-1 → MST-10; list index i corresponds to MST level i+1.
 # ---------------------------------------------------------------------------
 
-_MONK_SCALE_RGB: list[tuple[str, tuple[int, int, int]]] = [
-    ("MST-1",  (0xF6, 0xED, 0xE4)),
-    ("MST-2",  (0xF3, 0xE7, 0xDB)),
-    ("MST-3",  (0xF7, 0xEA, 0xD0)),
-    ("MST-4",  (0xEA, 0xDA, 0xBA)),
-    ("MST-5",  (0xD7, 0xBD, 0x96)),
-    ("MST-6",  (0xA0, 0x78, 0x50)),
-    ("MST-7",  (0x82, 0x5C, 0x43)),
-    ("MST-8",  (0x60, 0x41, 0x34)),
-    ("MST-9",  (0x3A, 0x31, 0x2A)),
-    ("MST-10", (0x29, 0x24, 0x20)),
+_MONK_RGB: list[tuple[int, int, int]] = [
+    (0xF6, 0xED, 0xE4),  # MST-1  — very fair
+    (0xF3, 0xE7, 0xDB),  # MST-2  — fair
+    (0xF7, 0xEA, 0xD0),  # MST-3  — light
+    (0xEA, 0xDA, 0xBA),  # MST-4  — light-medium
+    (0xD7, 0xBD, 0x96),  # MST-5  — medium
+    (0xA0, 0x78, 0x50),  # MST-6  — medium-deep
+    (0x82, 0x5C, 0x43),  # MST-7  — tan / deep-medium
+    (0x60, 0x41, 0x34),  # MST-8  — deep
+    (0x3A, 0x31, 0x2A),  # MST-9  — very deep
+    (0x29, 0x24, 0x20),  # MST-10 — deepest
 ]
 
-# Coarse class index → allowed MST labels (mirrors ml/train.py COARSE_CLASSES order)
-_MST_RANGES: dict[int, list[str]] = {
-    0: ["MST-1", "MST-2", "MST-3"],
-    1: ["MST-4", "MST-5", "MST-6", "MST-7"],
-    2: ["MST-8", "MST-9", "MST-10"],
-}
 
-# ---------------------------------------------------------------------------
-# Optional PyTorch inference
-# ---------------------------------------------------------------------------
+def _rgb_to_lab(r: int, g: int, b: int) -> tuple[float, float, float]:
+    """Convert a single sRGB triplet to OpenCV uint8 LAB.
 
-_MODEL_PATH = Path(__file__).resolve().parent.parent / "ml" / "monk_classifier.pt"
-
-_model = None          # TorchScript model or None
-_preprocess = None     # torchvision transform pipeline or None
-
-try:
-    import torch
-    import torchvision.transforms as _T
-
-    _preprocess = _T.Compose([
-        _T.ToPILImage(),
-        _T.Resize((224, 224)),
-        _T.ToTensor(),
-        _T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-    if _MODEL_PATH.exists():
-        _model = torch.jit.load(str(_MODEL_PATH), map_location="cpu")
-        _model.eval()
-        print(f"[monk_classifier] Loaded ML model from {_MODEL_PATH}")
-    else:
-        print(f"[monk_classifier] Model not found at {_MODEL_PATH} — using LAB fallback")
-
-except ImportError:
-    print("[monk_classifier] torch not installed — using LAB fallback")
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-def classify_monk(
-    pixels: list[tuple[int, int, int]],
-    image_bytes: bytes | None = None,
-) -> dict:
-    """Classify skin-tone pixels into a Monk Skin Tone value and undertone.
-
-    Args:
-        pixels:      RGB tuples sampled from facial skin landmarks.
-        image_bytes: Raw image bytes used to extract the face crop for the
-                     ML model.  When None or when the model is unavailable,
-                     the full-range LAB-distance classifier is used.
-
-    Returns:
-        {
-            "monk_scale": "MST-2",
-            "undertone":  "cool",
-            "avg_rgb":    [R, G, B],
-            "avg_hex":    "#f3e7db",
-        }
-        Returns an empty dict when *pixels* is empty.
+    OpenCV's uint8 encoding:  L ∈ [0, 255],  a, b ∈ [0, 255]  (128 = neutral).
     """
-    if not pixels:
-        return {}
-
-    avg_rgb = _average_rgb(pixels)
-    avg_lab = _rgb_to_lab_triple(*avg_rgb)
-    undertone = _detect_undertone(avg_lab)
-    avg_hex = "#{:02x}{:02x}{:02x}".format(*avg_rgb)
-
-    monk_label = _classify_monk_scale(avg_lab, image_bytes)
-
-    return {
-        "monk_scale": monk_label,
-        "undertone":  undertone,
-        "avg_rgb":    list(avg_rgb),
-        "avg_hex":    avg_hex,
-    }
-
-
-# ---------------------------------------------------------------------------
-# MST classification
-# ---------------------------------------------------------------------------
-
-def _classify_monk_scale(
-    avg_lab: tuple[float, float, float],
-    image_bytes: bytes | None,
-) -> str:
-    """Return the MST label, using the ML model when available."""
-    if _model is not None and image_bytes is not None:
-        coarse = _run_model(image_bytes)
-        if coarse is not None:
-            allowed = _MST_RANGES.get(coarse, list(_MONK_SCALE_LAB_MAP.keys()))
-            return _nearest_monk_in(avg_lab, allowed)
-
-    return _nearest_monk(avg_lab)
-
-
-def _run_model(image_bytes: bytes) -> int | None:
-    """Run the TorchScript model and return the coarse class index (0/1/2).
-
-    Returns None on any error so the caller can fall back to LAB distance.
-    """
-    try:
-        from detection.face_detection import extract_face_crop  # avoid circular at module level
-        import torch
-
-        crop_rgb = extract_face_crop(image_bytes)
-        if crop_rgb is None:
-            return None
-
-        tensor = _preprocess(crop_rgb).unsqueeze(0)  # (1, 3, 224, 224)
-        with torch.no_grad():
-            logits = _model(tensor)
-        return int(logits.argmax(dim=1).item())
-    except Exception as exc:
-        print(f"[monk_classifier] ML inference failed: {exc} — falling back to LAB")
-        return None
-
-
-# ---------------------------------------------------------------------------
-# LAB helpers
-# ---------------------------------------------------------------------------
-
-def _rgb_to_lab_triple(r: int, g: int, b: int) -> tuple[float, float, float]:
     pixel = np.array([[[b, g, r]]], dtype=np.uint8)
     lab = cv2.cvtColor(pixel, cv2.COLOR_BGR2LAB)
     L, a, b_val = lab[0, 0]
     return (float(L), float(a), float(b_val))
 
 
-def _average_rgb(pixels: list[tuple[int, int, int]]) -> tuple[int, int, int]:
-    n = len(pixels)
-    r = round(sum(p[0] for p in pixels) / n)
-    g = round(sum(p[1] for p in pixels) / n)
-    b = round(sum(p[2] for p in pixels) / n)
-    return (r, g, b)
+# The 10 canonical reference LAB tuples, computed once at import time.
+# MST level N is at index N-1.
+_MST_REFERENCE_LAB: list[tuple[float, float, float]] = [
+    _rgb_to_lab(r, g, b) for r, g, b in _MONK_RGB
+]
+
+# ---------------------------------------------------------------------------
+# Per-range undertone thresholds
+#
+# The a*/b* spread is compressed at the ends of the MST scale:
+#   MST 1–3:  pale skin  — subtle hue differences; tight threshold avoids
+#             mapping everything to "neutral"
+#   MST 4–7:  mid-range  — standard separation is most reliable here
+#   MST 8–10: deep skin  — a*/b* both near zero; tighten to stay sensitive
+# ---------------------------------------------------------------------------
+
+def _undertone_threshold(mst_level: int) -> float:
+    if mst_level <= 3:
+        return 4.0
+    if mst_level <= 7:
+        return 6.0
+    return 3.0
 
 
-def _lab_sq_dist(
-    a: tuple[float, float, float],
-    b: tuple[float, float, float],
-) -> float:
-    return (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+# ---------------------------------------------------------------------------
+# Public classification functions
+# ---------------------------------------------------------------------------
+
+def classify_mst(lab: tuple[float, float, float]) -> int:
+    """Return the MST level (1–10) whose reference LAB value is nearest to
+    *lab* under squared Euclidean distance in OpenCV uint8 LAB space.
+
+    Using squared distance is valid for nearest-neighbour because the square
+    root is monotone — it preserves the ordering without the extra cost.
+    """
+    best_level = 1
+    best_dist  = float("inf")
+    for level, ref in enumerate(_MST_REFERENCE_LAB, start=1):
+        dist = (
+            (lab[0] - ref[0]) ** 2
+            + (lab[1] - ref[1]) ** 2
+            + (lab[2] - ref[2]) ** 2
+        )
+        if dist < best_dist:
+            best_dist  = dist
+            best_level = level
+    return best_level
 
 
-def _nearest_monk(lab: tuple[float, float, float]) -> str:
-    return min(_MONK_SCALE_LAB, key=lambda e: _lab_sq_dist(lab, e[1]))[0]
+def classify_undertone(lab: tuple[float, float, float], mst_level: int) -> str:
+    """Classify undertone as ``"warm"``, ``"cool"``, or ``"neutral"``.
 
+    Both a* and b* are centred on 128 in OpenCV uint8 LAB:
+        a_shift > 0  → red-pink cast
+        b_shift > 0  → yellow-golden cast
 
-def _nearest_monk_in(lab: tuple[float, float, float], allowed: list[str]) -> str:
-    allowed_set = set(allowed)
-    subset = [(label, lab_val) for label, lab_val in _MONK_SCALE_LAB
-              if label in allowed_set]
-    return min(subset, key=lambda e: _lab_sq_dist(lab, e[1]))[0]
+    Warm skin (peach/golden) has b_shift dominating a_shift.
+    Cool skin (pink/rosy)    has a_shift dominating b_shift.
+    The separation threshold varies by MST range — see ``_undertone_threshold``.
+    """
+    _, a, b    = lab
+    a_shift    = a - 128.0
+    b_shift    = b - 128.0
+    threshold  = _undertone_threshold(mst_level)
 
-
-def _detect_undertone(lab: tuple[float, float, float]) -> str:
-    _L, a, b = lab
-    a_shift = a - 128.0
-    b_shift = b - 128.0
-    _THRESHOLD = 6.0
-    if b_shift - a_shift > _THRESHOLD:
+    if b_shift - a_shift > threshold:
         return "warm"
-    if a_shift - b_shift > _THRESHOLD:
+    if a_shift - b_shift > threshold:
         return "cool"
     return "neutral"
 
 
-# ---------------------------------------------------------------------------
-# Deferred initialisation
-# ---------------------------------------------------------------------------
+def classify_mst_with_distances(
+    lab: tuple[float, float, float],
+) -> list[dict]:
+    """Return all 10 MST Euclidean distances as [{"mst": int, "distance": float}, ...].
 
-_MONK_SCALE_LAB: list[tuple[str, tuple[float, float, float]]] = [
-    (label, _rgb_to_lab_triple(r, g, b))
-    for label, (r, g, b) in _MONK_SCALE_RGB
-]
+    Lower distance = closer match.  Used by the streaming endpoint so the
+    frontend can animate the full distance sweep before revealing the winner.
+    """
+    return [
+        {
+            "mst":      level,
+            "distance": round(
+                (
+                    (lab[0] - ref[0]) ** 2
+                    + (lab[1] - ref[1]) ** 2
+                    + (lab[2] - ref[2]) ** 2
+                ) ** 0.5,
+                2,
+            ),
+        }
+        for level, ref in enumerate(_MST_REFERENCE_LAB, start=1)
+    ]
 
-_MONK_SCALE_LAB_MAP: dict[str, tuple[float, float, float]] = dict(_MONK_SCALE_LAB)
+
+def classify_monk(
+    sample: SkinSample,
+    image_bytes: bytes | None = None,   # accepted for call-site compatibility; unused
+) -> dict:
+    """Classify a :class:`~detection.face_detection.SkinSample` and return a
+    result dict with ``monk_scale``, ``undertone``, ``avg_rgb``, and
+    ``avg_hex``.
+
+    The *image_bytes* parameter is accepted but ignored — classification is
+    pure LAB nearest-neighbour with no ML model dependency.
+    """
+    avg_rgb   = sample.rgb
+    avg_lab   = sample.lab
+
+    mst_level = classify_mst(avg_lab)
+    undertone = classify_undertone(avg_lab, mst_level)
+    avg_hex   = "#{:02x}{:02x}{:02x}".format(*avg_rgb)
+
+    return {
+        "monk_scale": f"MST-{mst_level}",
+        "undertone":  undertone,
+        "avg_rgb":    list(avg_rgb),
+        "avg_hex":    avg_hex,
+    }

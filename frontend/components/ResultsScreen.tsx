@@ -1,30 +1,21 @@
 "use client"
 
-import { useRef, useState } from "react"
-import { motion } from "framer-motion"
-import { useGSAP } from "@gsap/react"
-import gsap from "gsap"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import MonkScaleBar from "./MonkScaleBar"
 import type { Results, ShadeRec } from "@/app/page"
-import { Sticker, SwatchSticker, type StickerProps } from "./Stickers"
 
-interface Props {
-  results: Results
-  onReset: () => void
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type FoundationMatch = {
+  brand:        string
+  name:         string
+  shade:        string
+  price_tier:   string
+  match_reason: string
 }
 
-const CARD_ROTATIONS = ["-1deg", "0.5deg", "1.5deg"]
-
-interface CardStickerConfig {
-  type: StickerProps["type"]
-  color: string
-  rotate: number
-}
-const CARD_STICKERS: CardStickerConfig[] = [
-  { type: "sparkle", color: "#E85D75", rotate: 10  },
-  { type: "flower",  color: "#E8A020", rotate: -15 },
-  { type: "star",    color: "#C4A8F0", rotate: 20  },
-]
-
+type Tab      = "makeup" | "skincare"
 type Category = "foundation" | "concealer" | "blush" | "bronzer" | "lip"
 
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -35,392 +26,608 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: "lip",        label: "Lip"        },
 ]
 
-const CATEGORY_COLORS: Record<Category, { color: string; border: string; bg: string }> = {
-  foundation: { color: "#CC5A30", border: "#FF8C69", bg: "rgba(255,140,105,0.12)" },
-  concealer:  { color: "#B89A00", border: "#FFE566", bg: "rgba(255,229,102,0.15)" },
-  blush:      { color: "#B83050", border: "#E85D75", bg: "rgba(232,93,117,0.12)"  },
-  bronzer:    { color: "#A06010", border: "#E8A020", bg: "rgba(232,160,32,0.12)"  },
-  lip:        { color: "#7B52C4", border: "#C4A8F0", bg: "rgba(196,168,240,0.14)" },
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function undertoneColor(undertone: string) {
+  const u = undertone.toLowerCase()
+  if (u.includes("warm")) return "#c68642"
+  if (u.includes("cool")) return "#7ea8c4"
+  return "#82a682"
 }
 
-const PRODUCT_STICKERS: CardStickerConfig[] = [
-  { type: "leaf",   color: "#6DBF8A", rotate: -8 },
-  { type: "flower", color: "#E85D75", rotate: 12 },
-]
+function priceLabel(price: string) {
+  if (price === "$")   return { color: "#6dbf8a", label: "Drugstore" }
+  if (price === "$$$") return { color: "#c4a8f0", label: "Luxury"    }
+  return                      { color: "#c68642",  label: "Mid-range" }
+}
 
-function undertoneStyle(undertone: string): { color: string } {
-  const u = undertone.toLowerCase()
-  if (u.includes("warm")) return { color: "#CC5A30" }
-  if (u.includes("cool")) return { color: "#7B52C4" }
-  return                         { color: "#3D8A56" }
+// card width (w-52 = 208px) + gap (gap-4 = 16px)
+const SHADE_CARD_STRIDE = 224
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+interface Props {
+  results: Results
+  onReset: () => void
 }
 
 export default function ResultsScreen({ results, onReset }: Props) {
-  const containerRef     = useRef<HTMLDivElement>(null)
-  const titleRef         = useRef<HTMLHeadingElement>(null)
-  const heroRef          = useRef<HTMLDivElement>(null)
-  const shadesHeadingRef = useRef<HTMLDivElement>(null)
-  const mstCounterRef    = useRef<HTMLSpanElement>(null)
-
+  const [activeTab,      setActiveTab]      = useState<Tab>("makeup")
   const [activeCategory, setActiveCategory] = useState<Category>("foundation")
+  const [foundInput,     setFoundInput]     = useState("")
+  const [isMatching,     setIsMatching]     = useState(false)
+  const [foundMatches,   setFoundMatches]   = useState<FoundationMatch[] | null>(null)
+  const [activeShadeIdx, setActiveShadeIdx] = useState(0)
 
-  useGSAP(
-    () => {
-      const tl = gsap.timeline()
-      tl.fromTo(titleRef.current,         { opacity: 0, y: -20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" })
-        .fromTo(heroRef.current,          { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.55, ease: "power2.out" }, "-=0.2")
-        .fromTo(shadesHeadingRef.current, { opacity: 0, y: 20  }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, "-=0.1")
+  const shadeScrollRef = useRef<HTMLDivElement>(null)
 
-      const mstNum = parseInt(results.monk_scale.split("-")[1], 10)
-      const obj = { v: 0 }
-      gsap.to(obj, {
-        v: mstNum, duration: 1.2, delay: 0.5, ease: "power2.out", snap: { v: 1 },
-        onUpdate() {
-          if (mstCounterRef.current)
-            mstCounterRef.current.textContent = `MST-${Math.round(obj.v)}`
-        },
+  const mstLevel = parseInt(results.monk_scale.split("-")[1], 10)
+  const utColor  = undertoneColor(results.undertone)
+  const hasRecs  =
+    results.recommendations != null &&
+    Object.keys(results.recommendations).length > 0
+  const picks: ShadeRec[] =
+    (results.recommendations[activeCategory] as ShadeRec[] | undefined) ?? []
+  const shadeCount = results.matched_shades.length
+
+  // ── Shade scroll tracker ──────────────────────────────────────────────────
+
+  useEffect(() => {
+    const el = shadeScrollRef.current
+    if (!el) return
+    const onScroll = () => {
+      const idx = Math.round(el.scrollLeft / SHADE_CARD_STRIDE)
+      setActiveShadeIdx(Math.min(Math.max(idx, 0), shadeCount - 1))
+    }
+    el.addEventListener("scroll", onScroll, { passive: true })
+    return () => el.removeEventListener("scroll", onScroll)
+  }, [shadeCount])
+
+  const scrollToShade = useCallback((idx: number) => {
+    shadeScrollRef.current?.scrollTo({ left: idx * SHADE_CARD_STRIDE, behavior: "smooth" })
+    setActiveShadeIdx(idx)
+  }, [])
+
+  // ── Foundation matcher ────────────────────────────────────────────────────
+
+  const handleFoundationMatch = useCallback(async () => {
+    const input = foundInput.trim()
+    if (!input || isMatching) return
+    setIsMatching(true)
+    setFoundMatches(null)
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+      const res = await fetch(`${apiUrl}/match-foundation`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shade_input: input,
+          mst_level:   mstLevel,
+          undertone:   results.undertone,
+        }),
       })
-    },
-    { scope: containerRef },
-  )
+      const data = await res.json().catch(() => ({ matches: [] }))
+      setFoundMatches(data.matches ?? [])
+    } catch {
+      setFoundMatches([])
+    } finally {
+      setIsMatching(false)
+    }
+  }, [foundInput, isMatching, mstLevel, results.undertone])
 
-  const utStyle = undertoneStyle(results.undertone)
-  const hasRecommendations = results.recommendations != null && Object.keys(results.recommendations).length > 0
-  const activePicks: ShadeRec[] = (results.recommendations[activeCategory] as ShadeRec[] | undefined) ?? []
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div ref={containerRef} className="animated-bg min-h-screen py-16 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#0d0d0d] pt-16 px-4 pb-24">
+      <div className="max-w-xl mx-auto">
 
-        {/* Page title */}
-        <div className="text-center mb-10">
-          <h1
-            ref={titleRef}
-            className="title-shimmer font-[family-name:var(--font-display)] opacity-0"
-            style={{ fontSize: "clamp(32px, 6vw, 48px)", fontWeight: 400 }}
+        {/* ══ Always-visible header: skin tone + MST bar ══ */}
+        <div className="mb-12 space-y-14">
+
+          {/* Skin tone card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex items-center gap-6"
           >
-            your tinted profile ✦
-          </h1>
-          <div className="flex justify-center mt-3">
-            <span className="sticky-note" style={{ transform: "rotate(1deg)", display: "inline-flex", alignItems: "center", gap: 6 }}>
-              here&apos;s what we found
-              <Sticker type="blob" size={18} color="#E8A020" rotate={10} style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </span>
-          </div>
-        </div>
-
-        {/* Skin tone hero — polaroid */}
-        <div
-          ref={heroRef}
-          className="polaroid relative flex items-center gap-8 mb-12 opacity-0"
-        >
-          <div className="washi-tape w-16 absolute -top-2 left-1/2 -translate-x-1/2 rotate-[1deg]" />
-
-          {/* Swatch */}
-          <div className="relative flex-shrink-0" style={{ width: 160, height: 160 }}>
             <motion.div
-              className="absolute inset-0 rounded-sm"
-              animate={{
-                boxShadow: [
-                  `0 0 22px 6px ${results.avg_hex}55`,
-                  `0 0 40px 18px ${results.avg_hex}80`,
-                  `0 0 22px 6px ${results.avg_hex}55`,
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute inset-0 rounded-sm"
-              style={{ backgroundColor: results.avg_hex, willChange: "clip-path" }}
-              initial={{ clipPath: "circle(0% at 50% 50%)" }}
-              animate={{ clipPath: "circle(50% at 50% 50%)" }}
-              transition={{ duration: 0.85, ease: "easeOut", delay: 0.3 }}
-            />
-          </div>
-
-          {/* Text info */}
-          <div className="flex flex-col gap-2.5">
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Your Skin Tone
-            </p>
-            <span
-              ref={mstCounterRef}
-              style={{ fontFamily: "var(--font-display), serif", fontSize: 38, fontWeight: 400, color: "var(--text)", lineHeight: 1 }}
-            >
-              MST-0
-            </span>
-            <motion.span
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", delay: 0.9, stiffness: 200 }}
-              className="tag-pill self-start"
-              style={{ color: utStyle.color }}
-            >
-              {results.undertone} undertone
-            </motion.span>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.1 }}
-              style={{ fontFamily: "monospace", fontSize: 12, color: "var(--text-muted)", letterSpacing: "0.05em" }}
-            >
-              {results.avg_hex}
-            </motion.p>
-          </div>
-        </div>
-
-        {/* Shades heading */}
-        <div ref={shadesHeadingRef} className="mb-10 opacity-0">
-          {/* Swatch strip showing matched shade hex colors */}
-          <div className="mb-4">
-            <SwatchSticker colors={results.matched_shades.map((s) => s.hex)} />
-          </div>
-
-          <h2
-            style={{
-              fontFamily: "var(--font-display), serif",
-              fontSize: 28, fontWeight: 400, color: "var(--text)", marginBottom: 8,
-              display: "flex", alignItems: "center", gap: 8,
-            }}
-          >
-            your shade picks
-            <Sticker type="flower" size={20} color="#E85D75" rotate={15} style={{ display: "inline-block", verticalAlign: "middle" }} />
-          </h2>
-
-          <span className="sticky-note" style={{ transform: "rotate(-1deg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-            curated for your exact tone
-            <Sticker type="leaf" size={14} color="#6DBF8A" rotate={-5} style={{ display: "inline-block", verticalAlign: "middle" }} />
-          </span>
-        </div>
-
-        {/* Shade cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-16">
-          {results.matched_shades.map((shade, i) => (
-            <ShadeCard
-              key={shade.shade_name}
-              shade={shade}
-              index={i}
-              rotation={CARD_ROTATIONS[i] ?? "0deg"}
-              sticker={CARD_STICKERS[i]}
-            />
-          ))}
-        </div>
-
-        {/* ── Beauty picks section ── */}
-        {hasRecommendations && <div className="mb-12">
-          {/* Section header */}
-          <div className="mb-6">
-            <h2
+              className="w-20 h-20 rounded-full flex-shrink-0"
               style={{
-                fontFamily: "var(--font-display), serif",
-                fontSize: 28, fontWeight: 400, color: "var(--text)", marginBottom: 8,
-                display: "flex", alignItems: "center", gap: 8,
+                backgroundColor: results.avg_hex,
+                boxShadow: `0 0 0 1px rgba(255,255,255,0.08), 0 0 32px 4px ${results.avg_hex}55`,
               }}
-            >
-              your beauty picks
-              <Sticker type="sparkle" size={20} color="#E8A020" rotate={10} style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </h2>
-            <span className="sticky-note" style={{ transform: "rotate(0.8deg)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-              across foundation, concealer, blush, bronzer + lip
-              <Sticker type="ribbon" size={14} color="#E85D75" rotate={-5} style={{ display: "inline-block", verticalAlign: "middle" }} />
-            </span>
-          </div>
-
-          {/* Category tabs */}
-          <div
-            className="flex gap-2 mb-8 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {CATEGORIES.map(({ key, label }) => {
-              const isActive = activeCategory === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className="tag-pill cursor-pointer flex-shrink-0"
-                  style={{
-                    background: isActive ? "var(--rose)" : "rgba(255,255,255,0.80)",
-                    color:      isActive ? "#fff"        : "var(--text-muted)",
-                    borderColor: isActive ? "var(--rose)" : "rgba(0,0,0,0.15)",
-                    fontWeight: isActive ? 600 : 500,
-                    transition: "background 0.2s, color 0.2s",
-                  }}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Product cards */}
-          {activePicks.length === 0 ? (
-            <div className="flex justify-center">
-              <span className="sticky-note" style={{ transform: "rotate(-0.5deg)" }}>
-                nothing here yet — try another tab!
-              </span>
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+            />
+            <div className="flex flex-col gap-2">
+              <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase">
+                Your Skin Tone
+              </p>
+              <MstCounter level={mstLevel} />
+              <motion.span
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.7 }}
+                className="text-xs px-2.5 py-0.5 rounded-full border self-start"
+                style={{ color: utColor, borderColor: `${utColor}45` }}
+              >
+                {results.undertone}
+              </motion.span>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+                className="text-white/20 text-[11px] font-mono tracking-wider"
+              >
+                {results.avg_hex}
+              </motion.p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-              {activePicks.map((rec, i) => (
-                <ProductCard
-                  key={`${rec.brand}-${rec.shade}-${i}`}
-                  rec={rec}
-                  category={activeCategory}
-                  index={i}
-                  sticker={PRODUCT_STICKERS[i % PRODUCT_STICKERS.length]}
-                />
-              ))}
-            </div>
-          )}
-        </div>}
+          </motion.div>
 
-        {/* Reset */}
-        <div className="flex justify-center">
-          <motion.button
-            onClick={onReset}
-            whileHover={{ backgroundColor: "var(--rose)", color: "#fff", borderStyle: "solid" }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-            className="tag-pill cursor-pointer"
-            style={{
-              color: "var(--rose)",
-              borderColor: "var(--rose)",
-              background: "rgba(255,255,255,0.90)",
-              fontSize: 14,
-              padding: "8px 20px",
-              fontWeight: 600,
-            }}
+          {/* Monk Scale bar */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
-            ↩ Try another photo
-          </motion.button>
+            <MonkScaleBar highlightLevel={mstLevel} />
+          </motion.div>
         </div>
+
+        {/* ══ Makeup | Skincare tab bar ══ */}
+        <div className="flex gap-8 border-b border-white/[0.06] mb-12">
+          {(["makeup", "skincare"] as const).map((tab) => {
+            const active = activeTab === tab
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="relative pb-3 text-sm capitalize transition-colors"
+                style={{ color: active ? "white" : "rgba(255,255,255,0.3)" }}
+              >
+                {tab}
+                {active && (
+                  <motion.div
+                    layoutId="tab-underline"
+                    className="absolute bottom-0 left-0 right-0 h-px bg-[#c68642]"
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ══ Tab content ══ */}
+        <AnimatePresence mode="wait">
+
+          {activeTab === "makeup" ? (
+
+            <motion.div
+              key="makeup"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-14"
+            >
+
+              {/* ── Foundation matcher ── */}
+              <section>
+                <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-5">
+                  Match My Foundation
+                </p>
+                <div className="flex gap-2 mb-5">
+                  <input
+                    type="text"
+                    value={foundInput}
+                    onChange={(e) => setFoundInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleFoundationMatch()}
+                    placeholder="e.g. Maybelline Fit Me 220"
+                    className="flex-1 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
+                    style={{ background: "#111", border: "1px solid rgba(255,255,255,0.09)" }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(198,134,66,0.4)" }}
+                    onBlur={(e)  => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)" }}
+                  />
+                  <button
+                    onClick={handleFoundationMatch}
+                    disabled={isMatching || !foundInput.trim()}
+                    className="flex-shrink-0 px-5 py-3 rounded-xl text-sm transition-colors disabled:opacity-35"
+                    style={{
+                      background: "rgba(198,134,66,0.1)",
+                      border:     "1px solid rgba(198,134,66,0.35)",
+                      color:      "#c68642",
+                    }}
+                  >
+                    {isMatching ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-3 h-3 rounded-full border border-[#c68642]/50 border-t-[#c68642] animate-spin" />
+                        Finding
+                      </span>
+                    ) : "Find matches"}
+                  </button>
+                </div>
+                <AnimatePresence>
+                  {foundMatches && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.35 }}
+                    >
+                      {foundMatches.length === 0 ? (
+                        <p className="text-white/20 text-sm text-center py-6">
+                          No matches found — try a more specific shade name.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {foundMatches.map((m, i) => (
+                            <FoundationMatchCard key={i} match={m} />
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </section>
+
+              {/* ── Shade matches ── */}
+              <section>
+                <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-5">
+                  Shade Matches — Fenty Pro Filt&apos;r
+                </p>
+                <div
+                  ref={shadeScrollRef}
+                  className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4"
+                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none" }}
+                >
+                  {results.matched_shades.map((shade, i) => (
+                    <motion.div
+                      key={shade.shade_name}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * i + 0.2, duration: 0.4 }}
+                      className="flex-shrink-0 w-52 rounded-xl overflow-hidden"
+                      style={{
+                        scrollSnapAlign: "start",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      <div className="h-28" style={{ backgroundColor: shade.hex }} />
+                      <div className="p-4 bg-[#111] space-y-2">
+                        <p className="text-white text-sm font-medium">{shade.shade_name}</p>
+                        <p className="text-white/40 text-xs leading-relaxed">{shade.description}</p>
+                        {shade.recommendation && (
+                          <p className="text-[#c68642] text-xs leading-relaxed">
+                            {shade.recommendation}
+                          </p>
+                        )}
+                        {shade.match_score != null && (
+                          <div className="pt-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] text-white/20 tracking-widest uppercase">
+                                Match confidence
+                              </span>
+                              <span className="text-[9px] text-white/30 font-mono">
+                                {(shade.match_score * 100).toFixed(0)}%
+                              </span>
+                            </div>
+                            <div
+                              className="h-0.5 rounded-full overflow-hidden"
+                              style={{ background: "rgba(255,255,255,0.06)" }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width:      `${(shade.match_score * 100).toFixed(0)}%`,
+                                  background: "rgba(198,134,66,0.55)",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Scroll dots */}
+                {shadeCount > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-4">
+                    {results.matched_shades.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => scrollToShade(i)}
+                        aria-label={`Go to shade ${i + 1}`}
+                        className="rounded-full transition-all duration-300"
+                        style={{
+                          height:     "5px",
+                          width:      i === activeShadeIdx ? "20px" : "5px",
+                          background: i === activeShadeIdx
+                            ? "#c68642"
+                            : "rgba(255,255,255,0.18)",
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* ── Beauty picks ── */}
+              {hasRecs && (
+                <section>
+                  <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-4">
+                    Beauty Picks
+                  </p>
+
+                  {/* Sticky category tabs */}
+                  <div
+                    className="sticky top-0 z-10 -mx-4 px-4 py-3 mb-6"
+                    style={{
+                      background:   "#0d0d0d",
+                      borderBottom: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <div
+                      className="flex gap-2 overflow-x-auto"
+                      style={{ scrollbarWidth: "none" }}
+                    >
+                      {CATEGORIES.map(({ key, label }) => {
+                        const active = activeCategory === key
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setActiveCategory(key)}
+                            className="flex-shrink-0 text-xs rounded-full px-4 py-1.5 border transition-colors"
+                            style={{
+                              borderColor: active ? "#c68642" : "rgba(255,255,255,0.09)",
+                              color:       active ? "#c68642" : "rgba(255,255,255,0.35)",
+                              backgroundColor: active
+                                ? "rgba(198,134,66,0.08)"
+                                : "transparent",
+                            }}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Product grid */}
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={activeCategory}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.25 }}
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                    >
+                      {picks.length === 0 ? (
+                        <p className="col-span-2 text-white/20 text-sm text-center py-8">
+                          No picks in this category.
+                        </p>
+                      ) : (
+                        picks.map((rec, i) => (
+                          <ProductCard key={`${rec.brand}-${rec.shade}-${i}`} rec={rec} />
+                        ))
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </section>
+              )}
+
+            </motion.div>
+
+          ) : (
+
+            /* ── Skincare tab ── */
+            <motion.div
+              key="skincare"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div
+                className="rounded-2xl p-10 flex flex-col items-center gap-4 text-center"
+                style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
+              >
+                {/* Icon */}
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/30">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                    <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4" />
+                    <circle cx="12" cy="12" r="1" fill="currentColor" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white/60 text-sm font-medium mb-2">
+                    Skincare recommendations coming soon.
+                  </p>
+                  <p className="text-white/30 text-xs leading-relaxed max-w-xs mx-auto">
+                    We&apos;ll suggest moisturizers, SPF, and treatments matched to your
+                    skin tone and undertone.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+          )}
+        </AnimatePresence>
+
+        {/* ── Try again ── */}
+        <div className="flex justify-center mt-16">
+          <button
+            onClick={onReset}
+            className="text-sm text-white/25 hover:text-white/55 transition-colors"
+          >
+            ← try another photo
+          </button>
+        </div>
+
       </div>
     </div>
   )
 }
 
-// ── ShadeCard ─────────────────────────────────────────────────────────────────
+// ── Product card ─────────────────────────────────────────────────────────────
 
-type Shade = Results["matched_shades"][0]
+function ProductCard({ rec }: { rec: ShadeRec }) {
+  const [imgSrc, setImgSrc] = useState<string | null>(null)
 
-function ShadeCard({
-  shade, index, rotation, sticker,
-}: {
-  shade: Shade
-  index: number
-  rotation: string
-  sticker: CardStickerConfig
-}) {
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+    const query  = `${rec.brand} ${rec.product} ${rec.shade}`
+    fetch(`${apiUrl}/search-product`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ query }),
+    })
+      .then(r => r.json().catch(() => ({ results: [] })))
+      .then(data => {
+        const first = data.results?.[0]
+        if (first) setImgSrc(first.cutoutUrl ?? first.imageUrl ?? null)
+      })
+      .catch(() => { /* leave placeholder */ })
+  }, [rec.brand, rec.product, rec.shade])
+
+  const { color, label } = priceLabel(rec.price_range)
+  const initial  = rec.brand.trim()[0]?.toUpperCase() ?? "?"
+  const shopUrl  = rec.url
+    ? (rec.url.startsWith("http") ? rec.url : `https://${rec.url}`)
+    : null
+
   return (
-    <motion.div
-      initial={{ rotateY: 90, opacity: 0 }}
-      animate={{ rotateY: 0, opacity: 1 }}
-      transition={{ duration: 0.6, delay: 0.2 + index * 0.15, ease: "easeOut" }}
-      whileHover={{ scale: 1.03, y: -4 }}
-      style={{ perspective: 1000, willChange: "transform", transform: `rotate(${rotation})` }}
-      className="polaroid relative"
+    <div
+      className="rounded-xl overflow-hidden flex flex-col"
+      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
     >
-      {/* Flat hex swatch */}
-      <div className="w-full rounded-sm mb-3" style={{ height: 112, backgroundColor: shade.hex }} />
-
-      {/* Corner sticker component */}
-      <div className="absolute top-2 right-2 pointer-events-none select-none">
-        <Sticker type={sticker.type} size={18} color={sticker.color} rotate={sticker.rotate} />
+      {/* Image area */}
+      <div
+        className="w-full aspect-square flex items-center justify-center flex-shrink-0 overflow-hidden"
+        style={{
+          background:   "linear-gradient(135deg, rgba(198,134,66,0.18) 0%, rgba(198,134,66,0.04) 100%)",
+          borderBottom: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={rec.product}
+            className="w-full h-full object-contain"
+            onError={() => setImgSrc(null)}
+          />
+        ) : (
+          <span
+            className="font-light select-none"
+            style={{ fontSize: "clamp(40px, 12vw, 64px)", color: "rgba(198,134,66,0.45)" }}
+          >
+            {initial}
+          </span>
+        )}
       </div>
 
-      {/* Shade name */}
-      <h3 style={{ fontFamily: "var(--font-display), serif", fontSize: 20, fontWeight: 400, color: "var(--text)", marginBottom: 6 }}>
-        {shade.shade_name}
-      </h3>
-
-      {/* Description */}
-      <p style={{ fontFamily: "var(--font-body)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.55, marginBottom: 10 }}>
-        {shade.description}
-      </p>
-
-      {/* Recommendation as sticky-note — only shown when present */}
-      {shade.recommendation && (
-        <div className="sticky-note" style={{ transform: "rotate(1deg)", fontSize: 12, display: "block" }}>
-          {shade.recommendation}
+      <div className="p-4 flex flex-col gap-2.5 flex-1">
+        <p className="text-white/25 text-[10px] tracking-widest uppercase leading-none">
+          {rec.brand}
+        </p>
+        <p className="text-white text-sm font-medium leading-snug">{rec.product}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className="text-[11px] border rounded-full px-2.5 py-0.5"
+            style={{ color: "#c68642", borderColor: "rgba(198,134,66,0.28)" }}
+          >
+            {rec.shade}
+          </span>
+          <span className="text-[11px]" style={{ color }}>
+            {rec.price_range} · {label}
+          </span>
         </div>
-      )}
-    </motion.div>
+        <p className="text-white/35 text-xs leading-relaxed flex-1">{rec.why}</p>
+
+        {shopUrl ? (
+          <a
+            href={shopUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 text-xs text-center py-2 rounded-lg transition-colors"
+            style={{ border: "1px solid rgba(198,134,66,0.35)", color: "#c68642" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(198,134,66,0.1)" }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent" }}
+          >
+            Shop now →
+          </a>
+        ) : (
+          <div
+            className="mt-1 text-xs text-center py-2 rounded-lg"
+            style={{ border: "1px solid rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.15)" }}
+          >
+            Shop now →
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
-// ── ProductCard ───────────────────────────────────────────────────────────────
+// ── Foundation match card ─────────────────────────────────────────────────────
 
-function ProductCard({
-  rec, category, index, sticker,
-}: {
-  rec: ShadeRec
-  category: Category
-  index: number
-  sticker: CardStickerConfig
-}) {
-  const catStyle = CATEGORY_COLORS[category]
-  const rotation = index % 2 === 0 ? "-0.8deg" : "0.8deg"
-  const noteRotation = index % 2 === 0 ? "0.8deg" : "-0.8deg"
+function FoundationMatchCard({ match }: { match: FoundationMatch }) {
+  const { color, label } = priceLabel(match.price_tier)
 
   return (
-    <motion.div
-      key={category}
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
-      whileHover={{ scale: 1.02, y: -3 }}
-      className="polaroid relative"
-      style={{ transform: `rotate(${rotation})` }}
+    <div
+      className="rounded-xl p-4 space-y-2.5"
+      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
     >
-      {/* Corner sticker */}
-      <div className="absolute top-2 right-2 pointer-events-none select-none">
-        <Sticker type={sticker.type} size={18} color={sticker.color} rotate={sticker.rotate} />
-      </div>
-
-      {/* Brand */}
-      <p style={{
-        fontFamily: "var(--font-body)", fontSize: 10, color: "var(--text-muted)",
-        letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4,
-      }}>
-        {rec.brand}
+      <p className="text-white/25 text-[10px] tracking-widest uppercase leading-none">
+        {match.brand}
       </p>
-
-      {/* Product name */}
-      <h3 style={{
-        fontFamily: "var(--font-display), serif", fontSize: 18,
-        fontWeight: 400, color: "var(--text)", marginBottom: 8, lineHeight: 1.2,
-      }}>
-        {rec.product}
-      </h3>
-
-      {/* Shade pill + price */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+      <p className="text-white text-sm font-medium leading-snug">{match.name}</p>
+      <div className="flex items-center gap-2 flex-wrap">
         <span
-          className="tag-pill"
-          style={{
-            color: catStyle.color,
-            borderColor: catStyle.border,
-            background: catStyle.bg,
-            fontSize: 11, fontWeight: 600,
-          }}
+          className="text-[11px] border rounded-full px-2.5 py-0.5"
+          style={{ color: "#c68642", borderColor: "rgba(198,134,66,0.28)" }}
         >
-          {rec.shade}
+          {match.shade}
         </span>
-        <span style={{
-          fontFamily: "var(--font-body)", fontSize: 13,
-          color: "var(--sage)", fontWeight: 600, letterSpacing: "0.05em",
-        }}>
-          {rec.price_range}
+        <span className="text-[11px]" style={{ color }}>
+          {match.price_tier} · {label}
         </span>
       </div>
+      <p className="text-white/35 text-xs leading-relaxed">{match.match_reason}</p>
+    </div>
+  )
+}
 
-      {/* Why sticky-note */}
-      <div
-        className="sticky-note"
-        style={{ transform: `rotate(${noteRotation})`, fontSize: 11, display: "block", lineHeight: 1.5 }}
-      >
-        {rec.why}
-      </div>
-    </motion.div>
+// ── Animated MST counter ──────────────────────────────────────────────────────
+
+function MstCounter({ level }: { level: number }) {
+  const [displayed, setDisplayed] = useState(1)
+
+  useEffect(() => {
+    const duration  = 800
+    const startTime = performance.now()
+
+    function tick(now: number) {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased    = 1 - Math.pow(1 - progress, 3)
+      setDisplayed(Math.round(1 + (level - 1) * eased))
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+
+    requestAnimationFrame(tick)
+  }, [level])
+
+  return (
+    <p className="text-white text-3xl font-light tracking-tight">
+      MST-{displayed}
+    </p>
   )
 }
