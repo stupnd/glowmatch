@@ -7,11 +7,19 @@ import threading
 
 import httpx
 from ddgs import DDGS
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from api.claude_recommendations import get_full_beauty_recommendations
+from api.limits import (
+    ANALYZE_RULES,
+    SEARCH_RULES,
+    client_key,
+    limiter,
+    spend_guard,
+)
+from api.uploads import read_image_upload
 from color_utils import preprocess_image
 from detection.face_detection import (
     detect_face,
@@ -64,14 +72,14 @@ async def health() -> dict[str, str]:
 
 @router.post("/analyze")
 async def analyze(
+    request: Request,
     file: UploadFile = File(...),
     budget: str = Form(default="all"),
 ) -> dict:
-    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-    if not file.content_type or file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
+    limiter.check(client_key(request), "analyze", ANALYZE_RULES)
+    spend_guard.check()
 
-    image_bytes = await file.read()
+    image_bytes = await read_image_upload(file)
 
     # ── Preprocess + landmark detection ──────────────────────────────────────
     try:
@@ -239,15 +247,17 @@ def _run_streaming_pipeline(image_bytes: bytes, budget: str, q: thread_queue.Que
 
 @router.post("/analyze-stream")
 async def analyze_stream(
+    request: Request,
     file: UploadFile = File(...),
     budget: str = Form(default="all"),
 ) -> StreamingResponse:
     """Run the analysis pipeline and stream each stage as a server-sent event."""
-    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-    if not file.content_type or file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
+    # Same cost profile as /analyze, so it shares the bucket — a client can't
+    # double its budget by alternating between the two.
+    limiter.check(client_key(request), "analyze", ANALYZE_RULES)
+    spend_guard.check()
 
-    image_bytes = await file.read()
+    image_bytes = await read_image_upload(file)
     q: thread_queue.Queue = thread_queue.Queue()
 
     def _run() -> None:
@@ -280,7 +290,12 @@ class FoundationMatchRequest(BaseModel):
 
 
 @router.post("/match-foundation")
-async def match_foundation_endpoint(req: FoundationMatchRequest) -> dict:
+async def match_foundation_endpoint(request: Request, req: FoundationMatchRequest) -> dict:
+    # CLIP inference is CPU-heavy and match_foundation also calls Claude, so this
+    # needs both the throttle and the budget check.
+    limiter.check(client_key(request), "match", SEARCH_RULES)
+    spend_guard.check()
+
     if not req.shade_input.strip():
         return {"matches": []}
     try:
@@ -313,8 +328,11 @@ def _ddgs_image_search(query: str) -> list[dict]:
 
 
 @router.post("/search-product")
-async def search_product(req: SearchRequest) -> dict:
-    query = req.query.strip()
+async def search_product(request: Request, req: SearchRequest) -> dict:
+    # DuckDuckGo will rate-limit or block the deploy's IP if this runs hot.
+    limiter.check(client_key(request), "search", SEARCH_RULES)
+
+    query = req.query.strip()[:200]
     if not query:
         return {"results": []}
     try:

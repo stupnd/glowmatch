@@ -16,6 +16,8 @@ import os
 
 import anthropic
 
+from api.limits import record_claude_usage
+
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 _SCHEMA = """\
@@ -94,4 +96,5 @@ def _invoke(messages: list[dict], system: str) -> str:
         system=system,
         messages=messages,
     )
+    record_claude_usage(response)
     return response.content[0].text.strip()

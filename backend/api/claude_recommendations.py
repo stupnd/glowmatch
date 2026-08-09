@@ -3,6 +3,8 @@ import os
 
 import anthropic
 
+from api.limits import record_claude_usage
+
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 # Budget keys must match what the frontend sends ("drugstore" | "mid" | "high" | "all").
@@ -129,6 +131,7 @@ def _invoke(messages: list[dict], system: str) -> str:
         system=system,
         messages=messages,
     )
+    record_claude_usage(response)
     text = response.content[0].text.strip()
     # Strip markdown code fences if the model adds them despite being told not to
     if text.startswith("```"):
