@@ -30,7 +30,7 @@ from detection.face_detection import (
 from detection.monk_classifier import classify_monk, classify_mst_with_distances
 from detection.shade_matcher import match_shades
 from foundation_matcher import match_foundation
-from quality_gate import run_quality_gate
+from quality_gate import describe as describe_gate, run_quality_gate
 
 router = APIRouter()
 
@@ -96,7 +96,16 @@ async def analyze(
     # ── Pre-analysis quality gate ─────────────────────────────────────────────
     gate = run_quality_gate(img_bgr, landmarks)
     if not gate["passed"]:
-        raise HTTPException(status_code=422, detail=gate["failure_reasons"])
+        # Also surfaced as a response header so the measured values are visible
+        # in the browser's network tab, not just the server terminal. The body
+        # shape is unchanged — the frontend still gets a plain list of strings.
+        print(f"[quality-gate] REJECTED  {describe_gate(gate)}")
+        raise HTTPException(
+            status_code=422,
+            detail=gate["failure_reasons"],
+            headers={"X-Quality-Gate": describe_gate(gate)},
+        )
+    print(f"[quality-gate] passed    {describe_gate(gate)}")
 
     # ── Skin pixel extraction ─────────────────────────────────────────────────
     try:
@@ -181,6 +190,7 @@ def _run_streaming_pipeline(image_bytes: bytes, budget: str, q: thread_queue.Que
         # ── Stage 3: quality gate ─────────────────────────────────────────────
         gate = run_quality_gate(img_bgr, landmarks)
         if not gate["passed"]:
+            print(f"[quality-gate] REJECTED  {describe_gate(gate)}")
             emit({"stage": "error", "errors": gate["failure_reasons"]})
             return
 

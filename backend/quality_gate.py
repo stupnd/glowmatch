@@ -13,12 +13,18 @@ run_quality_gate(img_bgr, landmarks) -> dict
 
 from __future__ import annotations
 
+import os
+
 import cv2
 import numpy as np
 
 # ── Thresholds ───────────────────────────────────────────────────────────────
 
-_BLUR_MIN           = 80.0   # Laplacian variance; below = blurry
+# Laplacian variance; below = blurry. This number is not universal — it scales
+# with resolution and image content, so a downscaled webcam frame scores far
+# lower than a full-size phone photo of the same scene. Tune per input path with
+# BLUR_MIN rather than editing here.
+_BLUR_MIN           = float(os.environ.get("BLUR_MIN", 80.0))
 _OVEREXPOSED_V      = 220.0  # HSV V mean; above = blown out
 _UNDEREXPOSED_V     = 40.0   # HSV V mean; below = too dark
 _YAW_LIMIT          = 25.0   # degrees; horizontal head-turn limit
@@ -29,9 +35,20 @@ _LM_NOSE_TIP    = 4    # actual tip of the nose
 _LM_EYE_L_OUTER = 263  # subject's left eye outer corner (right side of image)
 _LM_EYE_R_OUTER = 33   # subject's right eye outer corner (left side of image)
 
-# Empirical: in a neutral selfie the nose tip is ~0.75× the inter-ocular width
-# below the midpoint of the two eye outer corners.
-_NEUTRAL_NOSE_BELOW_EYES = 0.75
+# In a level-headed selfie the nose tip sits this fraction of the outer-canthal
+# width below the eye line.
+#
+# 0.75 was the original value and is too high: with correct (aspect-corrected)
+# geometry a level face measures ~0.42, which the old constant scored as -22
+# degrees of chin-up tilt — enough to fail the +/-20 gate on its own. Standard
+# face anthropometry puts outer-canthus separation near 90mm and the eye-line to
+# nose-tip drop near 40-45mm, i.e. a ratio of roughly 0.45, which agrees.
+#
+# PROVISIONAL: this is one measurement plus a textbook estimate, not a
+# calibration. Face geometry varies between people, so measure nose_y_ratio
+# across the eval set (it is logged on every request) and set NEUTRAL_NOSE_RATIO
+# to the median before trusting this gate on real users.
+_NEUTRAL_NOSE_BELOW_EYES = float(os.environ.get("NEUTRAL_NOSE_RATIO", 0.45))
 # Scale factor so that ±0.30 deviation from neutral ≈ ±20°.
 _PITCH_SCALE = 67.0
 
@@ -71,7 +88,7 @@ def check_brightness(img_bgr: np.ndarray) -> dict:
     }
 
 
-def check_face_angle(landmarks) -> dict:
+def check_face_angle(landmarks, image_shape=None) -> dict:
     """Estimate yaw and pitch from three MediaPipe Face Mesh landmarks.
 
     Uses nose tip (#4), subject's left eye outer corner (#263), and subject's
@@ -90,24 +107,43 @@ def check_face_angle(landmarks) -> dict:
     eye_l = landmarks[_LM_EYE_L_OUTER]
     eye_r = landmarks[_LM_EYE_R_OUTER]
 
-    face_width = abs(eye_l.x - eye_r.x)
-    if face_width < 1e-6:
-        return {"yaw": 0.0, "pitch": 0.0, "acceptable": True}
+    # MediaPipe normalises x by image WIDTH and y by image HEIGHT, so a
+    # normalised y-distance and a normalised x-distance are only comparable on a
+    # square image. Scale back into pixels first — otherwise the pitch ratio is
+    # multiplied by the aspect ratio (~0.56 on a 9:16 phone photo) and every
+    # portrait selfie reads as a severe chin-up tilt.
+    if image_shape is not None:
+        img_h, img_w = image_shape[0], image_shape[1]
+    else:
+        img_h = img_w = 1.0
 
-    eye_center_x = (eye_l.x + eye_r.x) / 2.0
-    eye_center_y = (eye_l.y + eye_r.y) / 2.0
+    nose_x, nose_y = nose.x * img_w, nose.y * img_h
+    eye_l_x, eye_l_y = eye_l.x * img_w, eye_l.y * img_h
+    eye_r_x, eye_r_y = eye_r.x * img_w, eye_r.y * img_h
+
+    face_width = abs(eye_l_x - eye_r_x)
+    if face_width < 1e-6:
+        return {"yaw": 0.0, "pitch": 0.0, "nose_y_ratio": 0.0, "acceptable": True}
+
+    eye_center_x = (eye_l_x + eye_r_x) / 2.0
+    eye_center_y = (eye_l_y + eye_r_y) / 2.0
 
     # Yaw: lateral nose offset from inter-ocular midpoint, scaled to ±45°.
     # At ratio ±1.0 the nose is directly above an eye corner (≈ ±45°).
-    yaw = ((nose.x - eye_center_x) / (face_width * 0.5)) * 45.0
+    yaw = ((nose_x - eye_center_x) / (face_width * 0.5)) * 45.0
 
     # Pitch: vertical nose position relative to the neutral forward-facing
     # ratio, scaled so ±0.30 deviation from neutral ≈ ±20°.
-    nose_y_ratio = (nose.y - eye_center_y) / face_width
+    nose_y_ratio = (nose_y - eye_center_y) / face_width
     pitch = (nose_y_ratio - _NEUTRAL_NOSE_BELOW_EYES) * _PITCH_SCALE
 
     acceptable = abs(yaw) < _YAW_LIMIT and abs(pitch) < _PITCH_LIMIT
-    return {"yaw": float(yaw), "pitch": float(pitch), "acceptable": bool(acceptable)}
+    return {
+        "yaw":          float(yaw),
+        "pitch":        float(pitch),
+        "nose_y_ratio": float(nose_y_ratio),  # raw measurement, for calibration
+        "acceptable":   bool(acceptable),
+    }
 
 
 # ── Composite gate ───────────────────────────────────────────────────────────
@@ -130,7 +166,7 @@ def run_quality_gate(img_bgr: np.ndarray, landmarks) -> dict:
     """
     blur_score = check_blur(img_bgr)
     brightness = check_brightness(img_bgr)
-    angle      = check_face_angle(landmarks)
+    angle      = check_face_angle(landmarks, img_bgr.shape)
 
     failure_reasons: list[str] = []
 
@@ -162,3 +198,26 @@ def run_quality_gate(img_bgr: np.ndarray, landmarks) -> dict:
         "angle":           angle,
         "failure_reasons": failure_reasons,
     }
+
+
+def describe(gate: dict) -> str:
+    """One-line summary of measured values vs. thresholds, for logging.
+
+    The gate returns numbers but the API only surfaces the messages, which makes
+    a rejection impossible to debug — you can't tell a marginal miss from a wild
+    one. Log this alongside any failure.
+    """
+    angle = gate.get("angle", {})
+    bright = gate.get("brightness", {})
+    # ASCII only: this string is also sent as an HTTP header, and headers are
+    # latin-1 encoded. A stray en dash here raises UnicodeEncodeError and turns
+    # the 422 into a 500.
+    return (
+        f"blur={gate.get('blur_score', 0):.1f} (min {_BLUR_MIN}) "
+        f"yaw={angle.get('yaw', 0):+.1f} (limit +/-{_YAW_LIMIT}) "
+        f"pitch={angle.get('pitch', 0):+.1f} (limit +/-{_PITCH_LIMIT}) "
+        f"nose_y_ratio={angle.get('nose_y_ratio', 0):.3f} "
+        f"(neutral {_NEUTRAL_NOSE_BELOW_EYES}) "
+        f"mean_v={bright.get('mean_v', float('nan')):.1f} "
+        f"(ok {_UNDEREXPOSED_V}-{_OVEREXPOSED_V})"
+    )
