@@ -4,6 +4,8 @@ import random
 
 import anthropic
 
+from api.limits import record_claude_usage
+
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
 BUDGET_CONTEXT: dict[str, str] = {
@@ -177,6 +179,7 @@ in the specified tier.
         max_tokens=1500,
         messages=[{"role": "user", "content": prompt}],
     )
+    record_claude_usage(message)
 
     text = message.content[0].text.strip()
     text = text.replace("```json", "").replace("```", "").strip()

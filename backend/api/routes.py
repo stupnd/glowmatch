@@ -2,14 +2,23 @@ import asyncio
 import base64
 import json
 import os
-import time
 
 import httpx
 from ddgs import DDGS
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from api.claude_recommendations import get_full_beauty_recommendations
+from api.limits import (
+    ANALYZE_RULES,
+    SEARCH_RULES,
+    client_key,
+    limiter,
+    record_claude_usage,
+    record_removebg_call,
+    spend_guard,
+)
+from api.uploads import read_image_upload
 from detection.face_detection import extract_skin_pixels
 from detection.monk_classifier import classify_monk
 from detection.shade_matcher import match_shades
@@ -35,6 +44,7 @@ async def remove_background(image_url: str) -> str | None:
                 timeout=30.0,
             )
             if response.status_code == 200:
+                record_removebg_call()
                 img_data = base64.b64encode(response.content).decode("utf-8")
                 return f"data:image/png;base64,{img_data}"
             print(f"remove.bg returned {response.status_code}: {response.text[:200]}")
@@ -54,14 +64,14 @@ async def health() -> dict[str, str]:
 
 @router.post("/analyze")
 async def analyze(
+    request: Request,
     file: UploadFile = File(...),
     budget: str = Form(default="all"),
 ) -> dict:
-    ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-    if not file.content_type or file.content_type not in ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
+    limiter.check(client_key(request), "analyze", ANALYZE_RULES)
+    spend_guard.check()
 
-    image_bytes = await file.read()
+    image_bytes = await read_image_upload(file)
     pixels = extract_skin_pixels(image_bytes)
 
     if not pixels:
@@ -71,7 +81,8 @@ async def analyze(
     matched_shades = match_shades(result["monk_scale"], result["undertone"])
 
     try:
-        beauty_recs = get_full_beauty_recommendations(
+        beauty_recs = await asyncio.to_thread(
+            get_full_beauty_recommendations,
             monk_scale=result["monk_scale"],
             undertone=result["undertone"],
             avg_hex=result["avg_hex"],
@@ -98,21 +109,29 @@ class SearchRequest(BaseModel):
 
 
 @router.post("/search-product")
-async def search_product(req: SearchRequest) -> dict:
-    query = req.query.strip()
+async def search_product(request: Request, req: SearchRequest) -> dict:
+    query = req.query.strip()[:200]
     if not query:
         return {"results": []}
+
+    limiter.check(client_key(request), "search", SEARCH_RULES)
+    spend_guard.check()
 
     try:
         raw_results: list[dict] = []
 
-        time.sleep(1)
-        with DDGS() as ddgs:
-            images = list(ddgs.images(
-                f"{query} lip product official",
-                max_results=4,
-                safesearch="moderate",
-            ))
+        # DDGS is synchronous; run it off the event loop so one search doesn't
+        # stall every other in-flight request.
+        def _search() -> list[dict]:
+            with DDGS() as ddgs:
+                return list(ddgs.images(
+                    f"{query} lip product official",
+                    max_results=4,
+                    safesearch="moderate",
+                ))
+
+        await asyncio.sleep(1)
+        images = await asyncio.to_thread(_search)
 
         for img in images:
             raw_results.append({
@@ -135,11 +154,13 @@ Return ONLY a JSON array, no markdown:
 [{{"brand": "...", "name": "...", "shade": "...", "imageUrl": "..."}}]
 Extract brand separately. Keep imageUrl as-is. Max 4 results."""
 
-        message = claude_client.messages.create(
+        message = await asyncio.to_thread(
+            claude_client.messages.create,
             model="claude-sonnet-4-5",
             max_tokens=500,
             messages=[{"role": "user", "content": parse_prompt}],
         )
+        record_claude_usage(message)
         text   = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         parsed = json.loads(text)
 
