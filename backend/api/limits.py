@@ -39,9 +39,6 @@ def _env_int(name: str, default: int) -> int:
 CLAUDE_INPUT_PER_MTOK = _env_float("CLAUDE_INPUT_PER_MTOK", 1.00)
 CLAUDE_OUTPUT_PER_MTOK = _env_float("CLAUDE_OUTPUT_PER_MTOK", 5.00)
 
-# remove.bg bills per call, not per token. Currently unused — `remove_background`
-# is defined but no longer called. Kept so the accounting is ready if it returns.
-REMOVEBG_COST_PER_CALL = _env_float("REMOVEBG_COST_PER_CALL", 0.09)
 
 # Hard ceiling on what a single day can cost. Once crossed, the paid paths
 # fail closed until UTC midnight.
@@ -230,6 +227,3 @@ def record_claude_usage(message) -> float:
     return cost
 
 
-def record_removebg_call() -> float:
-    spend_guard.record(REMOVEBG_COST_PER_CALL)
-    return REMOVEBG_COST_PER_CALL

@@ -1,11 +1,9 @@
 import asyncio
-import base64
 import json
 import os
 import queue as thread_queue
 import threading
 
-import httpx
 from ddgs import DDGS
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
@@ -36,32 +34,6 @@ from quality_gate import describe as describe_gate, run_quality_gate
 from skincare_quiz import QUESTIONS, score as score_quiz
 
 router = APIRouter()
-
-REMOVEBG_API_KEY = os.environ.get("REMOVEBG_API_KEY")
-
-
-# ── Background removal ────────────────────────────────────────────────────────
-
-async def remove_background(image_url: str) -> str | None:
-    """Remove background from image URL via remove.bg.
-    Returns a data-URI base64 PNG with transparent background, or None."""
-    if not REMOVEBG_API_KEY or not image_url:
-        return None
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.remove.bg/v1.0/removebg",
-                data={"image_url": image_url, "size": "auto"},
-                headers={"X-Api-Key": REMOVEBG_API_KEY},
-                timeout=30.0,
-            )
-            if response.status_code == 200:
-                img_data = base64.b64encode(response.content).decode("utf-8")
-                return f"data:image/png;base64,{img_data}"
-            print(f"remove.bg returned {response.status_code}: {response.text[:200]}")
-    except Exception as e:
-        print(f"remove.bg error: {e}")
-    return None
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
