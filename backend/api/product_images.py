@@ -89,20 +89,104 @@ def cache_key(brand: str, product: str) -> str:
     return f"{brand.strip().lower()}|{product.strip().lower()}"
 
 
+# Hosts that serve user-generated content. An image search for a real product
+# name reliably surfaces these — swatch photos, "get the look" posts, nail art
+# tagged with the foundation someone happened to be wearing. They match the
+# words and not the product, which is the worst possible outcome on a card whose
+# whole job is to show you the thing you would be buying.
+_UGC_HOSTS = (
+    "pinimg.com", "pinterest.", "instagram.", "cdninstagram.", "fbcdn.net",
+    # Substrings, not domains — "tiktok." would miss p16.tiktokcdn.com.
+    "tiktok", "tumblr.", "blogspot.", "wordpress.", "reddit.", "redd.it",
+    "twimg.com", "ytimg.com", "youtube.", "facebook.", "wixstatic.com",
+    "squarespace-cdn.com", "medium.com", "quoracdn.net", "wp.com",
+)
+
+# Retailer and brand CDNs. Not exhaustive and not required — it only breaks
+# ties, so an unknown legitimate shop still wins on title relevance alone.
+_PREFERRED_HOSTS = (
+    "walmartimages.com", "media-amazon.com", "ebayimg.com", "ulta.com",
+    "sephora.com", "target.scene7.com", "targetimg", "cdn.shopify.com",
+    "boots.com", "cultbeauty.co.uk", "lookfantastic.com", "notino.",
+    "douglas.", "sokoglam.com", "beautybay.com", "feelunique.com",
+)
+
+# Words that mark a result as a look rather than a product shot.
+_BAD_TITLE_WORDS = (
+    "nail", "nails", "manicure", "hairstyle", "outfit", "tattoo", "meme",
+    "wallpaper", "drawing", "aesthetic", "tutorial", "vs ", "dupe",
+)
+
+# Below this, we would rather show no photo than a wrong one — the card is
+# built to look complete without an image.
+_MIN_SCORE = 2
+
+
+def _score_candidate(image: dict, brand: str, product: str) -> int:
+    """Rank a search hit by how likely it is to be a photo of this product."""
+    url = str(image.get("image", ""))
+    title = str(image.get("title", "")).lower()
+    host = url.split("/")[2].lower() if url.count("/") >= 2 else ""
+
+    if not url.startswith("https://"):
+        return -1
+    if any(bad in host for bad in _UGC_HOSTS):
+        return -1
+    if any(word in title for word in _BAD_TITLE_WORDS):
+        return -1
+
+    # The brand appearing in the title is the single strongest signal that the
+    # result is the product rather than something worn with it.
+    brand_first = brand.lower().split()[0] if brand.split() else ""
+    relevance = 3 if brand_first and brand_first in title else 0
+
+    # Overlap on the distinguishing words of the product name.
+    words = [w for w in product.lower().split() if len(w) > 3]
+    if words:
+        relevance += min(sum(1 for w in words if w in title), 3)
+
+    # A trusted host is a tie-breaker, never a substitute for relevance. Without
+    # this guard a well-known retailer CDN could clear the bar on host score
+    # alone and put an unrelated product on the card.
+    if relevance == 0:
+        return -1
+
+    if any(good in host for good in _PREFERRED_HOSTS):
+        relevance += 2
+
+    return relevance
+
+
 def _lookup_one(brand: str, product: str) -> str | None:
-    """Blocking DDGS image search for a single product. Never raises."""
+    """Blocking DDGS image search for a single product. Never raises.
+
+    Takes the best-scoring candidate from a wider result set rather than the
+    first https hit. The old behaviour — first result wins — is why an
+    unrelated photo could end up on a card: DDGS ordering is not stable, and
+    when a UGC host took the top slot there was nothing to reject it.
+    """
     query = f"{brand} {product}".strip()
     if not query:
         return None
+
     try:
         with DDGS() as ddgs:
-            for img in ddgs.images(query, max_results=3, safesearch="moderate"):
-                url = img.get("image", "")
-                if url.startswith("https://"):
-                    return url
+            candidates = list(
+                ddgs.images(query, max_results=12, safesearch="moderate")
+            )
     except Exception as exc:
         print(f"[product-images] lookup failed for {query!r}: {exc}")
-    return None
+        return None
+
+    best_url, best_score = None, _MIN_SCORE - 1
+    for image in candidates:
+        score = _score_candidate(image, brand, product)
+        if score > best_score:
+            best_url, best_score = str(image.get("image", "")), score
+
+    if best_url is None:
+        print(f"[product-images] no confident match for {query!r} — showing none")
+    return best_url
 
 
 async def resolve_many(products: list[tuple[str, str]]) -> dict[str, str | None]:
