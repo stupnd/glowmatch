@@ -116,7 +116,7 @@ npm run dev
 ### Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 95 tests
+cd backend && python -m pytest tests/ -q     # 146 tests
 ```
 
 ---
@@ -200,7 +200,7 @@ tinted/
 │   ├── quality_gate.py pre-analysis input checks
 │   └── skincare_quiz.py  question set + weighted tag scoring
 ├── frontend/
-│   ├── app/            routes: /, /quiz, /profile, /lip-combo
+│   ├── app/            routes: /, /quiz, /profile
 │   ├── components/ui/  design-system primitives
 │   └── lib/api.ts      typed API client
 └── docs/

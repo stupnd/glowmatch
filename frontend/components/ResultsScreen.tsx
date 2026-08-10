@@ -70,7 +70,7 @@ export default function ResultsScreen({
   const detectedLevel = parseInt(results.monk_scale.split("-")[1], 10);
   const mstLevel = overrideLevel ?? detectedLevel;
 
-  // Persist so other routes can use the measurement — lip-combo reads this.
+  // Persist so other routes can use the measurement.
   // Saves the override, not the raw detection: if the user corrected us, their
   // correction is the better answer everywhere else too.
   useEffect(() => {

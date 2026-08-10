@@ -8,7 +8,6 @@ import { AuthButton } from "@/components/layout/AuthButton";
 const LINKS = [
   { href: "/", label: "Shade match" },
   { href: "/quiz", label: "Skincare quiz" },
-  { href: "/lip-combo", label: "Lip combo" },
 ];
 
 export function Navbar({ className }: { className?: string }) {

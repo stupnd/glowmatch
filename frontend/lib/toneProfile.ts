@@ -3,10 +3,9 @@
 /**
  * The user's last analysis result, persisted across routes.
  *
- * Analysis state lives in the /(home) page component, so anything on another
- * route — lip-combo especially — had no way to see it. That is why lip-combo
- * shipped with zero references to the user's tone and assigned products colours
- * from a rotating palette instead.
+ * Analysis state lives in the home page component, so anything on another route
+ * cannot see it. This persists the reading so future surfaces can, without
+ * threading it through the router.
  *
  * localStorage rather than a server record on purpose: this is a measurement of
  * someone's face, it is only useful on the device that took it, and storing it
