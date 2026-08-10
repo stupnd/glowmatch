@@ -53,7 +53,7 @@ export function ProductCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={product.imageUrl as string}
-            alt={`${product.brand} ${product.product}${
+            alt={`${product.brand ? product.brand + " " : ""}${product.product}${
               product.shade && product.shade !== "N/A"
                 ? ` in shade ${product.shade}`
                 : ""
@@ -82,7 +82,7 @@ export function ProductCard({
                 className="font-display text-title text-text-muted"
                 aria-hidden="true"
               >
-                {product.brand.charAt(0).toUpperCase()}
+                {(product.brand || product.product).charAt(0).toUpperCase()}
               </span>
             )}
           </div>
@@ -101,7 +101,9 @@ export function ProductCard({
       </div>
 
       <div className="mt-3 space-y-1.5">
-        <p className="text-label uppercase text-text-muted">{product.brand}</p>
+        {product.brand && (
+          <p className="text-label uppercase text-text-muted">{product.brand}</p>
+        )}
         <p className="font-medium leading-snug text-text">{product.product}</p>
 
         {product.shade && product.shade !== "N/A" && (

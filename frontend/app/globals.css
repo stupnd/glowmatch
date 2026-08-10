@@ -153,6 +153,11 @@ body {
   z-index: 200;
 }
 
+/* A horizontally scrolling strip shouldn't show a scrollbar over its own
+   rounded edge — the tab rail relies on this. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Checkerboard behind cut-out product photos, so a transparent PNG doesn't
    vanish into the page. */
 .bg-swatch-check {
