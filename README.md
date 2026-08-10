@@ -69,6 +69,17 @@ result.
 
 ## Running it locally
 
+```bash
+./scripts/dev.sh          # both halves, with preflight checks
+```
+
+The script refuses to start against a venv older than Python 3.10 and warns if
+`ANTHROPIC_API_KEY` is missing. Both failures are otherwise silent: the web app
+loads fine, the quiz just says it couldn't load and recommendations come back
+empty, with nothing pointing at the backend.
+
+First-time setup below.
+
 ### Backend
 
 ```bash
