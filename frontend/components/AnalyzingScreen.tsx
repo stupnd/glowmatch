@@ -1,126 +1,127 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import MonkScaleBar from "./MonkScaleBar"
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import MonkScaleBar from "./MonkScaleBar";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
-interface Props {
-  qualityErrors: string[] | null
-  onReset: () => void
-}
+// What the pipeline actually does, in order. Presented as a description of the
+// work rather than as live status: /analyze is a single request, so the client
+// genuinely does not know which stage is running. The previous version cycled
+// these on a 1.8s timer, which looked like progress reporting and wasn't —
+// "See how it works" mode (/analyze-stream) is where real per-stage feedback
+// lives.
+const PIPELINE = [
+  "Correcting white balance",
+  "Locating 468 facial landmarks",
+  "Checking blur, exposure and head angle",
+  "Sampling skin patches, discarding outliers",
+  "Classifying depth and undertone",
+  "Matching against the shade catalogue",
+];
 
-const STATUS_MESSAGES = [
-  "detecting facial landmarks...",
-  "analyzing your undertone...",
-  "finding your perfect shades...",
-]
-
-export default function AnalyzingScreen({ qualityErrors, onReset }: Props) {
-  const [msgIdx, setMsgIdx] = useState(0)
+export default function AnalyzingScreen({
+  qualityErrors,
+  onReset,
+}: {
+  qualityErrors: string[] | null;
+  onReset: () => void;
+}) {
+  const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    if (qualityErrors) return
-    const id = setInterval(() => {
-      setMsgIdx((i) => (i + 1) % STATUS_MESSAGES.length)
-    }, 1800)
-    return () => clearInterval(id)
-  }, [qualityErrors])
+    if (qualityErrors) return;
+    const id = setInterval(() => setSeconds((value) => value + 1), 1000);
+    return () => clearInterval(id);
+  }, [qualityErrors]);
+
+  if (qualityErrors) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-20">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="text-label uppercase text-warn">
+            That photo won&apos;t give a good read
+          </p>
+          <h1 className="mt-2 font-display text-title text-text">
+            Let&apos;s try another
+          </h1>
+
+          {/* role="alert" so this is announced — the old version rendered the
+              reasons silently. */}
+          <ul className="mt-6 space-y-3" role="alert">
+            {qualityErrors.map((error) => (
+              <li
+                key={error}
+                className="rounded-card border border-warn/30 bg-warn/10 px-4 py-3 text-text"
+              >
+                {error}
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-6 text-small text-text-soft">
+            We check this before analysing rather than after, because a
+            confidently wrong shade is worse than asking for a second photo.
+          </p>
+
+          <Button className="mt-6" onClick={onReset}>
+            Try another photo
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4">
-      <AnimatePresence mode="wait">
+    <div className="mx-auto max-w-lg px-4 py-20">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <p className="text-label uppercase text-accent">Working on it</p>
+        <h1
+          className="mt-2 font-display text-title text-text"
+          role="status"
+          aria-live="polite"
+        >
+          Reading your skin tone
+        </h1>
+        <p className="mt-2 text-small text-text-soft">
+          Usually 10–20 seconds.
+          {seconds >= 25 && " Taking longer than usual — still going."}
+        </p>
 
-        {qualityErrors ? (
-          /* ── Error state ── */
-          <motion.div
-            key="error"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center gap-8 max-w-sm w-full text-center"
-          >
-            {/* Warning icon */}
-            <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-5 h-5 text-white/35"
+        <div className="my-8">
+          <MonkScaleBar animate className="w-full" />
+        </div>
+
+        <Card padding="md">
+          <h2 className="text-label uppercase text-text-muted">
+            What&apos;s happening
+          </h2>
+          <ol className="mt-3 space-y-2">
+            {PIPELINE.map((step) => (
+              <li
+                key={step}
+                className="flex items-start gap-2.5 text-small text-text-soft"
               >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-white/30 text-[10px] tracking-[0.18em] uppercase">
-                photo needs adjustment
-              </p>
-              <ul className="space-y-2">
-                {qualityErrors.map((err, i) => (
-                  <li key={i} className="text-white/70 text-sm leading-relaxed">
-                    {err}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <button
-              onClick={onReset}
-              className="px-6 py-2.5 rounded-full border border-[#c68642]/45 text-[#c68642] text-sm hover:bg-[#c68642]/08 transition-colors"
-              style={{ backgroundColor: "transparent" }}
-            >
-              try another photo
-            </button>
-          </motion.div>
-        ) : (
-          /* ── Loading state ── */
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center gap-10 max-w-xs w-full"
-          >
-            <p className="text-white/15 text-[11px] tracking-[0.22em] uppercase">tinted.</p>
-
-            {/* Monk Scale bar — shimmer sweep while analyzing */}
-            <MonkScaleBar animate className="w-full" />
-
-            {/* Cycling status text */}
-            <div className="h-5 flex items-center">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={msgIdx}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-white/35 text-xs tracking-wide"
-                >
-                  {STATUS_MESSAGES[msgIdx]}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-
-            {/* Staggered dots */}
-            <div className="flex gap-2">
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  className="w-1 h-1 rounded-full bg-white/20"
-                  animate={{ opacity: [0.2, 0.7, 0.2] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3, ease: "easeInOut" }}
+                <span
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent/50"
+                  aria-hidden="true"
                 />
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
+                {step}
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 border-t border-line pt-3 text-small text-text-muted">
+            Want to watch this happen live? Choose{" "}
+            <span className="text-text">Show the pipeline</span> on the upload
+            screen.
+          </p>
+        </Card>
+      </motion.div>
     </div>
-  )
+  );
 }

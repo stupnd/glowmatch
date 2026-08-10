@@ -369,15 +369,15 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
   const isError = stage === "error"
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center px-4 py-16">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-sm">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-white/60 text-sm font-light tracking-widest uppercase mb-1">
+          <h2 className="text-text-soft text-sm font-light tracking-widest uppercase mb-1">
             Live analysis
           </h2>
-          <p className="text-white/30 text-xs">
+          <p className="text-text-muted text-xs">
             {isError ? "Something went wrong" : STAGE_LABELS[stage]}
           </p>
         </div>
@@ -420,8 +420,8 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
           {/* Patch counter */}
           {(stage === "sampling" || stage === "aggregating") && (
             <div className="flex items-center justify-between">
-              <span className="text-white/30 text-xs">Patches evaluated</span>
-              <span className="text-[#c68642] text-xs font-mono">
+              <span className="text-text-muted text-xs">Patches evaluated</span>
+              <span className="text-accent text-xs font-mono">
                 {patchStats.accepted} accepted / {patchStats.total - patchStats.accepted} rejected
               </span>
             </div>
@@ -430,7 +430,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
           {/* MST distance bar (classifying stage) */}
           {stage === "classifying" && distances.length > 0 && (
             <div>
-              <p className="text-white/25 text-[10px] tracking-widest uppercase mb-3">
+              <p className="text-text-muted text-[10px] tracking-widest uppercase mb-3">
                 MST distance comparison
               </p>
               <div className="flex gap-1 items-end" style={{ height: "72px" }}>
@@ -442,7 +442,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
                   return (
                     <div key={mst} className="flex flex-col items-center gap-1 flex-1" style={{ opacity: shown ? 1 : 0, transition: "opacity 0.15s" }}>
                       {winner && shown && (
-                        <div className="text-[8px] text-[#c68642] leading-none">▼</div>
+                        <div className="text-[8px] text-accent leading-none">▼</div>
                       )}
                       <div
                         className="w-full rounded-sm"
@@ -455,13 +455,13 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
                           transition: "height 0.2s ease-out",
                         }}
                       />
-                      <div className="text-[8px] text-white/25">{mst}</div>
+                      <div className="text-[8px] text-text-muted">{mst}</div>
                     </div>
                   )
                 })}
               </div>
               {mstLevel && distShown >= 10 && (
-                <p className="text-center text-[#c68642] text-xs mt-3">
+                <p className="text-center text-accent text-xs mt-3">
                   MST-{mstLevel} — closest match
                 </p>
               )}
@@ -478,7 +478,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
                   boxShadow:  `0 0 12px rgb(${meanRgbRef.current[0]},${meanRgbRef.current[1]},${meanRgbRef.current[2]})`,
                 }}
               />
-              <span className="text-white/40 text-xs">
+              <span className="text-text-soft text-xs">
                 Using {patchStats.accepted} of {patchStats.total} patches (10% luminance trim)
               </span>
             </div>
@@ -524,7 +524,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
         <div className="flex justify-center mt-10">
           <button
             onClick={onReset}
-            className="text-sm text-white/25 hover:text-white/55 transition-colors"
+            className="text-sm text-text-muted hover:text-text-soft transition-colors"
           >
             ← try another photo
           </button>

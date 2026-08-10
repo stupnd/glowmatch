@@ -1,4 +1,6 @@
-"use client"
+"use client";
+
+import { cn } from "@/lib/utils";
 
 const MONK_COLORS = [
   "#f6ede4", // MST-1
@@ -11,74 +13,92 @@ const MONK_COLORS = [
   "#604134", // MST-8
   "#3a312a", // MST-9
   "#292420", // MST-10
-]
+];
 
-interface Props {
-  highlightLevel?: number  // 1–10, which segment to mark
-  animate?: boolean        // shimmer sweep when true
-  className?: string
-}
-
-export default function MonkScaleBar({ highlightLevel, animate, className }: Props) {
-  // Center of segment N: ((N - 0.5) / 10) * 100 %
-  const markerLeft = highlightLevel != null
-    ? `${((highlightLevel - 0.5) / 10) * 100}%`
-    : null
+export default function MonkScaleBar({
+  highlightLevel,
+  animate,
+  className,
+}: {
+  /** 1–10, which segment to mark. */
+  highlightLevel?: number;
+  /** Shimmer sweep, for the analysing state. */
+  animate?: boolean;
+  className?: string;
+}) {
+  // Centre of segment N: ((N - 0.5) / 10) * 100%
+  const markerLeft =
+    highlightLevel != null
+      ? `${((highlightLevel - 0.5) / 10) * 100}%`
+      : null;
 
   return (
-    <div className={`relative ${className ?? ""}`}>
-      {/* 10-segment bar */}
+    <figure className={cn("relative m-0", className)}>
       <div
-        className="relative h-3.5 rounded-full overflow-hidden flex"
-        style={{ boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.06)" }}
+        className="relative flex h-3.5 overflow-hidden rounded-pill ring-1 ring-line"
+        // The bar is a meaningful graphic, not decoration — without a role and
+        // a label a screen reader gets ten unlabelled divs.
+        role="img"
+        aria-label={
+          highlightLevel != null
+            ? `Monk Skin Tone scale, 1 to 10. Your match is level ${highlightLevel}.`
+            : "Monk Skin Tone scale, 1 to 10."
+        }
       >
-        {MONK_COLORS.map((color, i) => (
-          <div key={i} className="flex-1" style={{ backgroundColor: color }} />
+        {MONK_COLORS.map((color, index) => (
+          <div
+            key={index}
+            className="flex-1"
+            style={{ backgroundColor: color }}
+          />
         ))}
 
-        {/* Shimmer sweep — lives inside overflow:hidden so it clips cleanly */}
         {animate && (
           <div
-            className="absolute inset-0 pointer-events-none animate-shimmer-sweep"
+            className="animate-shimmer-sweep pointer-events-none absolute inset-0"
             style={{
               width: "40%",
               background:
                 "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)",
             }}
+            aria-hidden="true"
           />
         )}
 
-        {/* Marker line (white) */}
         {markerLeft && (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-white"
+            className="absolute bottom-0 top-0 w-0.5 bg-white"
             style={{
               left: markerLeft,
               transform: "translateX(-50%)",
               boxShadow: "0 0 6px 1px rgba(255,255,255,0.9)",
             }}
+            aria-hidden="true"
           />
         )}
       </div>
 
-      {/* Accent dot below marker */}
       {markerLeft && (
         <div
-          className="absolute w-2 h-2 rounded-full bg-[#c68642]"
+          className="absolute h-2 w-2 rounded-full bg-accent"
           style={{
             left: markerLeft,
             bottom: "-6px",
             transform: "translateX(-50%)",
             boxShadow: "0 0 8px 2px rgba(198,134,66,0.65)",
           }}
+          aria-hidden="true"
         />
       )}
 
-      {/* Labels */}
-      <div className="flex justify-between mt-4">
-        <span className="text-[10px] text-white/20 tracking-widest uppercase">MST-1</span>
-        <span className="text-[10px] text-white/20 tracking-widest uppercase">MST-10</span>
-      </div>
-    </div>
-  )
+      {/* Was white/20 — about 1.5:1, effectively invisible. */}
+      <figcaption className="mt-4 flex justify-between text-label uppercase text-text-muted">
+        <span>MST-1</span>
+        {highlightLevel != null && (
+          <span className="text-accent">Level {highlightLevel}</span>
+        )}
+        <span>MST-10</span>
+      </figcaption>
+    </figure>
+  );
 }
