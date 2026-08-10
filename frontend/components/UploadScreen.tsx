@@ -1,142 +1,142 @@
-"use client"
+"use client";
 
-import { useState, useRef, useCallback, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import CameraModal from "./CameraModal"
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import CameraModal from "./CameraModal";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
 
-type BudgetValue = "drugstore" | "mid" | "high" | "all"
-export type AnalyseMode = "normal" | "stream"
+type BudgetValue = "drugstore" | "mid" | "high" | "all";
+export type AnalyseMode = "normal" | "stream";
 
 const BUDGET_OPTIONS: { label: string; sub: string; value: BudgetValue }[] = [
-  { label: "Drugstore",       sub: "under $20", value: "drugstore" },
-  { label: "Mid-range",       sub: "$20–60",    value: "mid"       },
-  { label: "High-end",        sub: "$60+",      value: "high"      },
-  { label: "Show everything", sub: "",          value: "all"       },
-]
+  { label: "Drugstore", sub: "under $20", value: "drugstore" },
+  { label: "Mid-range", sub: "$20–60", value: "mid" },
+  { label: "High-end", sub: "$60+", value: "high" },
+  { label: "Everything", sub: "", value: "all" },
+];
 
-interface Props {
-  onUpload: (file: File, budget: BudgetValue, mode: AnalyseMode) => void
-}
+const TIPS = [
+  { title: "Face the light", body: "A window beats a ceiling bulb. Avoid coloured light." },
+  { title: "No filters", body: "Beauty modes change the very thing we measure." },
+  { title: "Bare skin helps", body: "Foundation shifts the reading toward the shade you already wear." },
+];
 
-export default function UploadScreen({ onUpload }: Props) {
-  const fileInputRef              = useRef<HTMLInputElement>(null)
-  const [isDragging, setDragging] = useState(false)
-  const [showCamera, setCamera]   = useState(false)
-  const [budget, setBudget]       = useState<BudgetValue>("all")
-  const [mode, setMode]           = useState<AnalyseMode>("normal")
+export default function UploadScreen({
+  onUpload,
+}: {
+  onUpload: (file: File, budget: BudgetValue, mode: AnalyseMode) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setDragging] = useState(false);
+  const [showCamera, setCamera] = useState(false);
+  const [budget, setBudget] = useState<BudgetValue>("all");
+  const [mode, setMode] = useState<AnalyseMode>("normal");
 
-  // Persist mode in localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("tinted_mode") as AnalyseMode | null
-      if (saved === "normal" || saved === "stream") setMode(saved)
-    } catch { /* SSR safety */ }
-  }, [])
+      const saved = localStorage.getItem("tinted_mode") as AnalyseMode | null;
+      if (saved === "normal" || saved === "stream") setMode(saved);
+    } catch {
+      /* localStorage unavailable (SSR, private mode) — the default stands. */
+    }
+  }, []);
 
-  const handleModeChange = useCallback((m: AnalyseMode) => {
-    setMode(m)
-    try { localStorage.setItem("tinted_mode", m) } catch { /* ignore */ }
-  }, [])
+  const handleModeChange = useCallback((next: AnalyseMode) => {
+    setMode(next);
+    try {
+      localStorage.setItem("tinted_mode", next);
+    } catch {
+      /* Not worth surfacing — the choice just won't persist. */
+    }
+  }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(false)
-    const file = e.dataTransfer.files[0]
-    if (file) onUpload(file, budget, mode)
-  }, [onUpload, budget, mode])
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      setDragging(false);
+      const file = event.dataTransfer.files[0];
+      if (file) onUpload(file, budget, mode);
+    },
+    [onUpload, budget, mode],
+  );
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) onUpload(file, budget, mode)
-  }, [onUpload, budget, mode])
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) onUpload(file, budget, mode);
+    },
+    [onUpload, budget, mode],
+  );
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center px-4 py-16">
-
-      {/* Title */}
+    <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-20">
       <motion.div
-        initial={{ opacity: 0, y: -16 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
-        className="text-center mb-14"
+        transition={{ duration: 0.5 }}
+        className="max-w-2xl"
       >
-        <h1
-          className="font-light tracking-tight text-white leading-none mb-3"
-          style={{ fontSize: "clamp(52px, 10vw, 88px)" }}
-        >
-          tinted.
+        <p className="text-label uppercase text-accent">AI shade matching</p>
+        <h1 className="mt-2 font-display text-title leading-tight text-text md:text-display">
+          Find the shade that actually matches you.
         </h1>
-        <p className="text-white/35 text-xs tracking-[0.18em] uppercase">
-          AI shade matching
+        <p className="mt-4 max-w-prose text-text-soft">
+          Upload a photo and we&apos;ll read your depth and undertone from your
+          skin directly, then match you against real products. No camera? The
+          quiz gets you there too.
         </p>
       </motion.div>
 
-      {/* Drop zone */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
-        className="w-full max-w-sm"
-      >
+      <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <motion.div
-          animate={{
-            borderColor: isDragging
-              ? "rgba(198,134,66,0.6)"
-              : "rgba(255,255,255,0.09)",
-            backgroundColor: isDragging
-              ? "rgba(198,134,66,0.04)"
-              : "rgba(198,134,66,0)",
-          }}
-          transition={{ duration: 0.15 }}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className="border border-dashed rounded-2xl p-10 flex flex-col items-center gap-5 cursor-pointer"
-          style={{ borderColor: "rgba(255,255,255,0.09)" }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
         >
-          {/* Upload icon */}
-          <div className="w-11 h-11 rounded-full border border-white/10 flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              className="w-5 h-5 text-white/35"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17,8 12,3 7,8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-          </div>
-
-          <div className="text-center">
-            <p className="text-white/75 text-sm font-medium mb-1.5">
-              drop your photo here
-            </p>
-            <p className="text-white/30 text-xs">
-              or{" "}
-              <span
-                className="text-[#c68642] underline underline-offset-2 cursor-pointer"
-                onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
-              >
-                browse files
-              </span>
-            </p>
-          </div>
-
-          <div
-            className="w-full border-t border-white/[0.06] pt-4 flex flex-col items-center gap-2.5"
-            onClick={(e) => e.stopPropagation()}
+          {/* A real button, so the primary action is reachable by keyboard —
+              the previous drop zone was a click-only div. */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            className={cn(
+              "flex w-full flex-col items-center gap-4 rounded-card border border-dashed p-10",
+              "transition-colors duration-[--duration-fast]",
+              isDragging
+                ? "border-accent bg-accent-dim"
+                : "border-line-strong bg-surface hover:border-accent hover:bg-raised",
+            )}
           >
-            <span className="text-white/20 text-xs">or</span>
-            <button
-              onClick={() => setCamera(true)}
-              className="text-xs text-white/45 hover:text-[#c68642] border border-white/10 hover:border-[#c68642]/35 rounded-full px-4 py-2 transition-colors"
-            >
-              use camera
-            </button>
-          </div>
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line-strong">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="h-5 w-5 text-accent"
+                aria-hidden="true"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17,8 12,3 7,8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </span>
+            <span className="text-center">
+              <span className="block font-medium text-text">
+                Drop a photo, or browse
+              </span>
+              <span className="mt-1 block text-small text-text-muted">
+                JPEG, PNG or WebP · up to 8 MB
+              </span>
+            </span>
+          </button>
 
           <input
             ref={fileInputRef}
@@ -145,106 +145,130 @@ export default function UploadScreen({ onUpload }: Props) {
             className="hidden"
             onChange={handleFileChange}
           />
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Button variant="secondary" onClick={() => setCamera(true)}>
+              Use camera
+            </Button>
+            <span className="text-small text-text-muted">or</span>
+            <Link
+              href="/quiz"
+              className="inline-flex min-h-11 items-center text-small font-medium text-accent hover:text-accent-bright"
+            >
+              take the skincare quiz instead →
+            </Link>
+          </div>
+
+          {/* Mode */}
+          <fieldset className="mt-8">
+            <legend className="text-label uppercase text-text-muted">
+              Mode
+            </legend>
+            <div className="mt-3 flex gap-2">
+              {(
+                [
+                  { value: "normal", label: "Just analyse" },
+                  { value: "stream", label: "Show the pipeline" },
+                ] as const
+              ).map(({ value, label }) => {
+                const active = mode === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => handleModeChange(value)}
+                    className={cn(
+                      "min-h-11 flex-1 rounded-pill border px-4 text-small transition-colors",
+                      active
+                        ? "border-accent bg-accent-dim text-accent-bright"
+                        : "border-line text-text-soft hover:border-line-strong hover:text-text",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {mode === "stream" && (
+              <p className="mt-2 text-small text-text-muted">
+                Watch each stage — detection, quality gate, sampling,
+                classification — as it runs.
+              </p>
+            )}
+          </fieldset>
+
+          {/* Budget */}
+          <fieldset className="mt-6">
+            <legend className="text-label uppercase text-text-muted">
+              Budget
+            </legend>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {BUDGET_OPTIONS.map(({ label, sub, value }) => {
+                const selected = budget === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setBudget(value)}
+                    className={cn(
+                      "min-h-11 rounded-pill border px-4 text-small transition-colors",
+                      selected
+                        ? "border-accent bg-accent-dim text-accent-bright"
+                        : "border-line text-text-soft hover:border-line-strong hover:text-text",
+                    )}
+                  >
+                    {label}
+                    {sub && (
+                      <span className="ml-1.5 text-text-muted">{sub}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         </motion.div>
-      </motion.div>
 
-      {/* Mode toggle */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.2 }}
-        className="w-full max-w-sm mt-4"
-      >
-        <div
-          className="flex rounded-xl p-1"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
+        {/* Coaching before capture beats an error after it. */}
+        <motion.aside
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          aria-labelledby="tips-heading"
+          className="rounded-card border border-line bg-surface p-5"
         >
-          {([
-            { value: "normal", label: "Analyse" },
-            { value: "stream", label: "See how it works" },
-          ] as const).map(({ value, label }) => {
-            const active = mode === value
-            return (
-              <button
-                key={value}
-                onClick={() => handleModeChange(value)}
-                className="flex-1 text-xs py-2 rounded-lg transition-all duration-200"
-                style={{
-                  background: active ? "rgba(198,134,66,0.15)" : "transparent",
-                  color:      active ? "#c68642" : "rgba(255,255,255,0.3)",
-                  border:     active ? "1px solid rgba(198,134,66,0.3)" : "1px solid transparent",
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-        {mode === "stream" && (
-          <p className="text-[10px] text-white/20 text-center mt-2 tracking-wide">
-            Watch the computer vision pipeline in real time
-          </p>
-        )}
-      </motion.div>
-
-      {/* Budget selector */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.25 }}
-        className="w-full max-w-sm mt-5"
-      >
-        <p className="text-white/30 text-[11px] tracking-[0.14em] uppercase mb-3 text-center">
-          Budget
-        </p>
-        <div className="flex flex-wrap gap-2 justify-center">
-          {BUDGET_OPTIONS.map(({ label, sub, value }) => {
-            const selected = budget === value
-            return (
-              <button
-                key={value}
-                onClick={() => setBudget(value)}
-                className="rounded-full px-4 py-1.5 text-xs transition-colors border"
-                style={{
-                  borderColor: selected ? "#c68642" : "rgba(255,255,255,0.12)",
-                  color:       selected ? "#c68642" : "rgba(255,255,255,0.38)",
-                  background:  "transparent",
-                }}
-              >
-                {label}{sub && <span className="opacity-60 ml-1">{sub}</span>}
-              </button>
-            )
-          })}
-        </div>
-      </motion.div>
-
-      {/* Tips */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, delay: 0.35 }}
-        className="flex gap-2.5 mt-7 flex-wrap justify-center"
-      >
-        {["Face forward", "Natural light", "No filters"].map((tip) => (
-          <span
-            key={tip}
-            className="text-[11px] text-white/22 border border-white/[0.07] rounded-full px-3 py-1"
-            style={{ color: "rgba(255,255,255,0.22)" }}
+          <h2
+            id="tips-heading"
+            className="text-label uppercase text-text-muted"
           >
-            {tip}
-          </span>
-        ))}
-      </motion.div>
+            For a good read
+          </h2>
+          <ul className="mt-4 space-y-4">
+            {TIPS.map((tip) => (
+              <li key={tip.title}>
+                <p className="font-medium text-text">{tip.title}</p>
+                <p className="mt-0.5 text-small leading-relaxed text-text-muted">
+                  {tip.body}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-5 border-t border-line pt-4 text-small text-text-muted">
+            Your photo is analysed and discarded. We don&apos;t store it.
+          </p>
+        </motion.aside>
+      </div>
 
-      {/* Camera modal */}
-      <AnimatePresence>
-        {showCamera && (
-          <CameraModal
-            onCapture={(file) => { setCamera(false); onUpload(file, budget, mode) }}
-            onClose={() => setCamera(false)}
-          />
-        )}
-      </AnimatePresence>
+      {showCamera && (
+        <CameraModal
+          onCapture={(file) => {
+            setCamera(false);
+            onUpload(file, budget, mode);
+          }}
+          onClose={() => setCamera(false)}
+        />
+      )}
     </div>
-  )
+  );
 }
