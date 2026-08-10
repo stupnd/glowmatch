@@ -24,7 +24,7 @@ import numpy as np
 # with resolution and image content, so a downscaled webcam frame scores far
 # lower than a full-size phone photo of the same scene. Tune per input path with
 # BLUR_MIN rather than editing here.
-_BLUR_MIN           = float(os.environ.get("BLUR_MIN", 80.0))
+_BLUR_MIN           = float(os.environ.get("BLUR_MIN", 60.0))
 _OVEREXPOSED_V      = 220.0  # HSV V mean; above = blown out
 _UNDEREXPOSED_V     = 40.0   # HSV V mean; below = too dark
 _YAW_LIMIT          = 25.0   # degrees; horizontal head-turn limit
@@ -58,7 +58,7 @@ _PITCH_SCALE = 67.0
 def check_blur(img_bgr: np.ndarray) -> float:
     """Return the Laplacian variance of *img_bgr* as a sharpness score.
 
-    A score below 80 indicates a blurry image.
+    Scores below ``_BLUR_MIN`` (60 by default) are treated as blurry.
     """
     gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
     return float(cv2.Laplacian(gray, cv2.CV_64F).var())
