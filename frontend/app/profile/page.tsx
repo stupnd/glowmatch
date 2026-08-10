@@ -30,7 +30,7 @@ export default function ProfilePage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <Badge tone="flare">Signed in</Badge>
+        <Badge tone="accent">Signed in</Badge>
         <h1 className="mt-4 font-display text-5xl font-bold text-plum md:text-6xl">
           Your Tinted studio
         </h1>

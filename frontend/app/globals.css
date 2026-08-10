@@ -1,11 +1,173 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tinted design system
+
+   Why a near-neutral dark canvas:
+   this app's entire job is to show colour accurately. A tinted background
+   shifts perceived skin tone — a warm page makes every swatch read warmer, and
+   the undertone call is the product. So the surfaces are deliberately close to
+   neutral grey (a hint cool, to counter the warmth of the accent), and the only
+   saturated colour on screen belongs to the shades and the product photos.
+
+   Every text/surface pair below is verified at WCAG AA (4.5:1) for body text.
+   Measured against --color-bg / --color-surface / --color-raised respectively:
+     text        17.90 / 16.74 / 15.47
+     text-soft    9.20 /  8.60 /  7.95
+     text-muted   5.49 /  5.13 /  4.74
+     accent       6.45 /  6.04 /  5.58
+   If you change a value here, re-check it before committing.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 @theme {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --color-bg: #0b0b0c;
+  --color-surface: #141416;
+  --color-raised: #1c1c1f;
+  --color-overlay: rgba(6, 6, 7, 0.72);
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text: #f5f4f2;
+  --color-text-soft: #b4b1ab;
+  --color-text-muted: #8a8780;
+
+  /* ── Accent ───────────────────────────────────────────────────────────── */
+  /* Bronze rather than pink: it sits beside every skin tone without competing
+     with it, which a saturated pink does not. */
   --color-accent: #c68642;
-  --color-bg: #0d0d0d;
-  --color-surface: rgba(255, 255, 255, 0.04);
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-accent-bright: #e0a063;
+  --color-accent-dim: rgba(198, 134, 66, 0.14);
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --color-success: #6fbf8b;
+  --color-warn: #e8b04b;
+  --color-danger: #f0796b;
+
+  /* ── Lines ────────────────────────────────────────────────────────────── */
+  --color-line: rgba(255, 255, 255, 0.09);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+
+  /* ── Type ─────────────────────────────────────────────────────────────── */
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+
+  /* A 1.2 modular scale. Display sizes are for the one hero line per screen,
+     never for a section heading. */
+  --text-display: 3.5rem;
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.03em;
+  --text-title: 2rem;
+  --text-title--line-height: 1.15;
+  --text-title--letter-spacing: -0.02em;
+  --text-heading: 1.25rem;
+  --text-heading--line-height: 1.3;
+  --text-body: 1rem;
+  --text-body--line-height: 1.6;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.5;
+  /* Eyebrow labels. Tracking is wide because it is always uppercase. */
+  --text-label: 0.75rem;
+  --text-label--line-height: 1.4;
+  --text-label--letter-spacing: 0.09em;
+
+  /* ── Radii ────────────────────────────────────────────────────────────── */
+  --radius-card: 0.875rem;
+  --radius-pill: 999px;
+
+  /* ── Elevation ────────────────────────────────────────────────────────── */
+  /* Dark UIs get depth from a light top edge, not from a heavier drop shadow. */
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+                 0 12px 32px -16px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+                 0 24px 48px -20px rgba(0, 0, 0, 0.95);
+  --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
+                 0 16px 40px -20px rgba(198, 134, 66, 0.45);
+
+  /* ── Motion ───────────────────────────────────────────────────────────── */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 140ms;
+  --duration-base: 260ms;
+  --duration-slow: 520ms;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Base
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Visible, consistent focus. Never remove this without replacing it — keyboard
+   users have no other way to tell where they are. */
+:focus-visible {
+  outline: 2px solid var(--color-accent-bright);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: rgba(198, 134, 66, 0.3);
+  color: var(--color-text);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 3px solid var(--color-bg);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Utilities
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Screen-reader-only, but focusable — used by the skip link. */
+.sr-only-focusable {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.sr-only-focusable:focus {
+  position: fixed;
+  top: 1rem; left: 1rem;
+  width: auto; height: auto;
+  padding: 0.75rem 1.25rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  background: var(--color-raised);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  z-index: 200;
+}
+
+/* Checkerboard behind cut-out product photos, so a transparent PNG doesn't
+   vanish into the page. */
+.bg-swatch-check {
+  background-image:
+    linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Animation
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 @keyframes shimmer-sweep {
   0%   { transform: translateX(-200%); }
@@ -19,21 +181,28 @@
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 0.2; }
-  50%       { opacity: 0.8; }
+  50%      { opacity: 0.8; }
 }
 
-.animate-shimmer-sweep { animation: shimmer-sweep 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
-.animate-fade-in-up    { animation: fade-in-up 0.5s ease-out both; }
-
-body {
-  background: #0d0d0d;
-  color: #ffffff;
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 2.8s var(--ease-out-soft) infinite;
+}
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-slow) var(--ease-out-soft) both;
+}
+.animate-pulse-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
-::-webkit-scrollbar          { width: 4px; height: 4px; }
-::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: rgba(198, 134, 66, 0.25); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(198, 134, 66, 0.5); }
+/* Motion is decoration here — every animation above conveys state that is also
+   conveyed statically, so switching them off costs nothing. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
