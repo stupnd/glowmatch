@@ -20,6 +20,7 @@ from api.limits import (
     spend_guard,
 )
 from api.product_images import resolve_many
+from api.skincare_recommendations import get_routine_products
 from api.uploads import read_image_upload
 from color_utils import preprocess_image
 from detection.face_detection import (
@@ -32,6 +33,7 @@ from detection.monk_classifier import classify_monk, classify_mst_with_distances
 from detection.shade_matcher import match_shades
 from foundation_matcher import match_foundation
 from quality_gate import describe as describe_gate, run_quality_gate
+from skincare_quiz import QUESTIONS, score as score_quiz
 
 router = APIRouter()
 
@@ -336,6 +338,67 @@ def _ddgs_image_search(query: str) -> list[dict]:
             safesearch="moderate",
         ))
 
+
+
+# ── Skincare quiz ─────────────────────────────────────────────────────────────
+
+@router.get("/skincare-quiz/questions")
+async def skincare_questions() -> dict:
+    """Serve the question set so the frontend doesn't duplicate it.
+
+    Weights are deliberately omitted — they are scoring internals, and shipping
+    them would let a client reverse-engineer the "right" answers.
+    """
+    return {
+        "questions": [
+            {
+                "id":        q.id,
+                "prompt":    q.prompt,
+                "multi":     q.multi,
+                "help_text": q.help_text,
+                "options": [
+                    {"value": o.value, "label": o.label, "hint": o.hint}
+                    for o in q.options
+                ],
+            }
+            for q in QUESTIONS
+        ]
+    }
+
+
+class SkincareQuizRequest(BaseModel):
+    # Values are str for single-select and list[str] for multi-select.
+    answers: dict[str, str | list[str]]
+    budget:  str = "all"
+
+
+@router.post("/skincare-quiz")
+async def skincare_quiz(request: Request, req: SkincareQuizRequest) -> dict:
+    """Score quiz answers into a routine, then fill it with real products."""
+    limiter.check(client_key(request), "analyze", ANALYZE_RULES)
+    spend_guard.check()
+
+    result = score_quiz(dict(req.answers))
+
+    try:
+        products = await asyncio.to_thread(
+            get_routine_products, result, req.budget
+        )
+    except Exception as exc:
+        print(f"[skincare-quiz] product selection failed: {exc}")
+        products = []
+
+    return {
+        "profile": {
+            "top_tags":   list(result.top_tags),
+            "tag_scores": result.tag_scores,
+            "sensitive":  result.sensitive,
+            "beginner":   result.beginner,
+            "rationale":  {k: list(v) for k, v in result.rationale.items()},
+        },
+        "routine_steps": list(result.routine_steps),
+        "routine":       products,
+    }
 
 
 # ── Product images (batch) ────────────────────────────────────────────────────
