@@ -1,0 +1,12 @@
+# Offline model training only — not installed on the API server.
+#
+#   pip install -r requirements.txt -r requirements-train.txt
+#   python -m ml.train --data_dir ml/data --epochs 30
+#
+# ml/train.py produces ml/monk_classifier.pt, which is NOT currently loaded at
+# request time; production classifies by LAB nearest neighbour. See
+# docs/classifier-evaluation.md for the target this model would have to beat.
+
+-r requirements.txt
+torch>=2.0.0
+torchvision>=0.15.0

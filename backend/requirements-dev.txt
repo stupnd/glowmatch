@@ -1,0 +1,3 @@
+# Test and development tooling.
+-r requirements.txt
+pytest>=8.0.0
