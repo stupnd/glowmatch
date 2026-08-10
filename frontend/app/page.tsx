@@ -7,38 +7,13 @@ import AnalyzingScreen from "@/components/AnalyzingScreen"
 import ResultsScreen   from "@/components/ResultsScreen"
 import LiveAnalyzer    from "@/components/LiveAnalyzer"
 import type { AnalyseMode } from "@/components/UploadScreen"
+import type { AnalyzeResult } from "@/lib/api"
 
-// ── Exported types (used by ResultsScreen) ───────────────────────────────────
-
-export type ShadeRec = {
-  brand:       string
-  product:     string
-  shade:       string
-  price_range: string
-  why:         string
-  url?:        string
-}
-
-export type Results = {
-  pixel_count:    number
-  monk_scale:     string
-  undertone:      string
-  avg_hex:        string
-  matched_shades: {
-    shade_name:     string
-    hex:            string
-    description:    string
-    recommendation: string
-    match_score?:   number
-  }[]
-  recommendations: {
-    foundation?: ShadeRec[]
-    concealer?:  ShadeRec[]
-    blush?:      ShadeRec[]
-    bronzer?:    ShadeRec[]
-    lip?:        ShadeRec[]
-  }
-}
+// These used to be declared here and imported by the screens, which meant the
+// canonical response shape lived in a page component and listed only five of
+// the ten recommendation categories the API returns. It lives in lib/api now;
+// the re-exports keep existing imports working.
+export type { AnalyzeResult as Results, Product as ShadeRec } from "@/lib/api"
 
 // ── State machine ─────────────────────────────────────────────────────────────
 
@@ -46,7 +21,7 @@ type AppState = "upload" | "analyzing" | "live-analyzing" | "results"
 
 export default function Home() {
   const [appState,      setAppState]      = useState<AppState>("upload")
-  const [results,       setResults]       = useState<Results | null>(null)
+  const [results,       setResults]       = useState<AnalyzeResult | null>(null)
   const [qualityErrors, setQualityErrors] = useState<string[] | null>(null)
   const [liveFile,      setLiveFile]      = useState<File | null>(null)
   const [liveBudget,    setLiveBudget]    = useState<string>("all")
@@ -95,7 +70,7 @@ export default function Home() {
         return
       }
 
-      const mapped: Results = {
+      const mapped: AnalyzeResult = {
         pixel_count:    data.pixel_count,
         monk_scale:     data.monk_scale,
         undertone:      data.undertone,

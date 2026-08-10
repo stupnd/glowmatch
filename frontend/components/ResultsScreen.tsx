@@ -1,633 +1,417 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import MonkScaleBar from "./MonkScaleBar"
-import type { Results, ShadeRec } from "@/app/page"
-
-// ── Types ─────────────────────────────────────────────────────────────────────
+import { useCallback, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import MonkScaleBar from "./MonkScaleBar";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { ProductCard } from "@/components/ui/ProductCard";
+import { ShadeSwatch } from "@/components/ui/ShadeSwatch";
+import { Tabs } from "@/components/ui/Tabs";
+import { useProductImages } from "@/hooks/useProductImages";
+import {
+  API_URL,
+  CATEGORY_LABELS,
+  CATEGORY_ORDER,
+  imageKey,
+  type AnalyzeResult,
+  type CategoryKey,
+  type Product,
+} from "@/lib/api";
 
 type FoundationMatch = {
-  brand:        string
-  name:         string
-  shade:        string
-  price_tier:   string
-  match_reason: string
+  brand: string;
+  name: string;
+  shade: string;
+  price_tier: string;
+  match_reason: string;
+};
+
+function undertoneTone(undertone: string): {
+  hex: string;
+  description: string;
+} {
+  const value = undertone.toLowerCase();
+  if (value.includes("warm"))
+    return {
+      hex: "#c68642",
+      description:
+        "Golden and peach tones sit closest to your skin; silver jewellery can read cold against it.",
+    };
+  if (value.includes("cool"))
+    return {
+      hex: "#7ea8c4",
+      description:
+        "Pink and blue-based tones suit you; yellow-heavy foundations tend to look sallow.",
+    };
+  return {
+    hex: "#82a682",
+    description:
+      "You sit between warm and cool, so most shade families work — match on depth first.",
+  };
 }
 
-type Tab      = "makeup" | "skincare"
-type Category = "foundation" | "concealer" | "blush" | "bronzer" | "lip"
+export default function ResultsScreen({
+  results,
+  onReset,
+}: {
+  results: AnalyzeResult;
+  onReset: () => void;
+}) {
+  const [category, setCategory] = useState<CategoryKey>("foundation");
+  const [showDetail, setShowDetail] = useState(false);
+  const [overrideLevel, setOverrideLevel] = useState<number | null>(null);
+  const [foundInput, setFoundInput] = useState("");
+  const [matching, setMatching] = useState(false);
+  const [matches, setMatches] = useState<FoundationMatch[] | null>(null);
 
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: "foundation", label: "Foundation" },
-  { key: "concealer",  label: "Concealer"  },
-  { key: "blush",      label: "Blush"      },
-  { key: "bronzer",    label: "Bronzer"    },
-  { key: "lip",        label: "Lip"        },
-]
+  const detectedLevel = parseInt(results.monk_scale.split("-")[1], 10);
+  const mstLevel = overrideLevel ?? detectedLevel;
+  const undertone = undertoneTone(results.undertone);
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+  // Every product across every category, so photos resolve in one batched call
+  // rather than one per tab switch.
+  const allProducts = useMemo(
+    () =>
+      CATEGORY_ORDER.flatMap(
+        (key) => (results.recommendations?.[key] as Product[] | undefined) ?? [],
+      ),
+    [results.recommendations],
+  );
+  const { images, loading: imagesLoading } = useProductImages(allProducts);
 
-function undertoneColor(undertone: string) {
-  const u = undertone.toLowerCase()
-  if (u.includes("warm")) return "#c68642"
-  if (u.includes("cool")) return "#7ea8c4"
-  return "#82a682"
-}
+  const tabs = useMemo(
+    () =>
+      CATEGORY_ORDER.filter(
+        (key) => (results.recommendations?.[key]?.length ?? 0) > 0,
+      ).map((key) => ({
+        id: key,
+        label: CATEGORY_LABELS[key],
+        count: results.recommendations?.[key]?.length ?? 0,
+      })),
+    [results.recommendations],
+  );
 
-function priceLabel(price: string) {
-  if (price === "$")   return { color: "#6dbf8a", label: "Drugstore" }
-  if (price === "$$$") return { color: "#c4a8f0", label: "Luxury"    }
-  return                      { color: "#c68642",  label: "Mid-range" }
-}
+  const picks = (results.recommendations?.[category] as Product[]) ?? [];
+  const topShade = results.matched_shades[0];
 
-// card width (w-52 = 208px) + gap (gap-4 = 16px)
-const SHADE_CARD_STRIDE = 224
-
-// ── Component ─────────────────────────────────────────────────────────────────
-
-interface Props {
-  results: Results
-  onReset: () => void
-}
-
-export default function ResultsScreen({ results, onReset }: Props) {
-  const [activeTab,      setActiveTab]      = useState<Tab>("makeup")
-  const [activeCategory, setActiveCategory] = useState<Category>("foundation")
-  const [foundInput,     setFoundInput]     = useState("")
-  const [isMatching,     setIsMatching]     = useState(false)
-  const [foundMatches,   setFoundMatches]   = useState<FoundationMatch[] | null>(null)
-  const [activeShadeIdx, setActiveShadeIdx] = useState(0)
-
-  const shadeScrollRef = useRef<HTMLDivElement>(null)
-
-  const mstLevel = parseInt(results.monk_scale.split("-")[1], 10)
-  const utColor  = undertoneColor(results.undertone)
-  const hasRecs  =
-    results.recommendations != null &&
-    Object.keys(results.recommendations).length > 0
-  const picks: ShadeRec[] =
-    (results.recommendations[activeCategory] as ShadeRec[] | undefined) ?? []
-  const shadeCount = results.matched_shades.length
-
-  // ── Shade scroll tracker ──────────────────────────────────────────────────
-
-  useEffect(() => {
-    const el = shadeScrollRef.current
-    if (!el) return
-    const onScroll = () => {
-      const idx = Math.round(el.scrollLeft / SHADE_CARD_STRIDE)
-      setActiveShadeIdx(Math.min(Math.max(idx, 0), shadeCount - 1))
-    }
-    el.addEventListener("scroll", onScroll, { passive: true })
-    return () => el.removeEventListener("scroll", onScroll)
-  }, [shadeCount])
-
-  const scrollToShade = useCallback((idx: number) => {
-    shadeScrollRef.current?.scrollTo({ left: idx * SHADE_CARD_STRIDE, behavior: "smooth" })
-    setActiveShadeIdx(idx)
-  }, [])
-
-  // ── Foundation matcher ────────────────────────────────────────────────────
-
-  const handleFoundationMatch = useCallback(async () => {
-    const input = foundInput.trim()
-    if (!input || isMatching) return
-    setIsMatching(true)
-    setFoundMatches(null)
+  const runFoundationMatch = useCallback(async () => {
+    const input = foundInput.trim();
+    if (!input || matching) return;
+    setMatching(true);
+    setMatches(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      const res = await fetch(`${apiUrl}/match-foundation`, {
-        method:  "POST",
+      const response = await fetch(`${API_URL}/match-foundation`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           shade_input: input,
-          mst_level:   mstLevel,
-          undertone:   results.undertone,
+          mst_level: mstLevel,
+          undertone: results.undertone,
         }),
-      })
-      const data = await res.json().catch(() => ({ matches: [] }))
-      setFoundMatches(data.matches ?? [])
+      });
+      const data = await response.json().catch(() => ({ matches: [] }));
+      setMatches(data.matches ?? []);
     } catch {
-      setFoundMatches([])
+      setMatches([]);
     } finally {
-      setIsMatching(false)
+      setMatching(false);
     }
-  }, [foundInput, isMatching, mstLevel, results.undertone])
-
-  // ── Render ────────────────────────────────────────────────────────────────
+  }, [foundInput, matching, mstLevel, results.undertone]);
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] pt-16 px-4 pb-24">
-      <div className="max-w-xl mx-auto">
-
-        {/* ══ Always-visible header: skin tone + MST bar ══ */}
-        <div className="mb-12 space-y-14">
-
-          {/* Skin tone card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-6"
-          >
-            <motion.div
-              className="w-20 h-20 rounded-full flex-shrink-0"
-              style={{
-                backgroundColor: results.avg_hex,
-                boxShadow: `0 0 0 1px rgba(255,255,255,0.08), 0 0 32px 4px ${results.avg_hex}55`,
-              }}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-            />
-            <div className="flex flex-col gap-2">
-              <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase">
-                Your Skin Tone
-              </p>
-              <MstCounter level={mstLevel} />
-              <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.7 }}
-                className="text-xs px-2.5 py-0.5 rounded-full border self-start"
-                style={{ color: utColor, borderColor: `${utColor}45` }}
-              >
-                {results.undertone}
-              </motion.span>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-                className="text-white/20 text-[11px] font-mono tracking-wider"
-              >
-                {results.avg_hex}
-              </motion.p>
-            </div>
-          </motion.div>
-
-          {/* Monk Scale bar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <MonkScaleBar highlightLevel={mstLevel} />
-          </motion.div>
-        </div>
-
-        {/* ══ Makeup | Skincare tab bar ══ */}
-        <div className="flex gap-8 border-b border-white/[0.06] mb-12">
-          {(["makeup", "skincare"] as const).map((tab) => {
-            const active = activeTab === tab
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="relative pb-3 text-sm capitalize transition-colors"
-                style={{ color: active ? "white" : "rgba(255,255,255,0.3)" }}
-              >
-                {tab}
-                {active && (
-                  <motion.div
-                    layoutId="tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-px bg-[#c68642]"
-                  />
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* ══ Tab content ══ */}
-        <AnimatePresence mode="wait">
-
-          {activeTab === "makeup" ? (
-
-            <motion.div
-              key="makeup"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-14"
-            >
-
-              {/* ── Foundation matcher ── */}
-              <section>
-                <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-5">
-                  Match My Foundation
-                </p>
-                <div className="flex gap-2 mb-5">
-                  <input
-                    type="text"
-                    value={foundInput}
-                    onChange={(e) => setFoundInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleFoundationMatch()}
-                    placeholder="e.g. Maybelline Fit Me 220"
-                    className="flex-1 rounded-xl px-4 py-3 text-sm text-white outline-none transition-colors"
-                    style={{ background: "#111", border: "1px solid rgba(255,255,255,0.09)" }}
-                    onFocus={(e) => { e.currentTarget.style.borderColor = "rgba(198,134,66,0.4)" }}
-                    onBlur={(e)  => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)" }}
-                  />
-                  <button
-                    onClick={handleFoundationMatch}
-                    disabled={isMatching || !foundInput.trim()}
-                    className="flex-shrink-0 px-5 py-3 rounded-xl text-sm transition-colors disabled:opacity-35"
-                    style={{
-                      background: "rgba(198,134,66,0.1)",
-                      border:     "1px solid rgba(198,134,66,0.35)",
-                      color:      "#c68642",
-                    }}
-                  >
-                    {isMatching ? (
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-3 h-3 rounded-full border border-[#c68642]/50 border-t-[#c68642] animate-spin" />
-                        Finding
-                      </span>
-                    ) : "Find matches"}
-                  </button>
-                </div>
-                <AnimatePresence>
-                  {foundMatches && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.35 }}
-                    >
-                      {foundMatches.length === 0 ? (
-                        <p className="text-white/20 text-sm text-center py-6">
-                          No matches found — try a more specific shade name.
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {foundMatches.map((m, i) => (
-                            <FoundationMatchCard key={i} match={m} />
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </section>
-
-              {/* ── Shade matches ── */}
-              <section>
-                <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-5">
-                  Shade Matches — Fenty Pro Filt&apos;r
-                </p>
-                <div
-                  ref={shadeScrollRef}
-                  className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4"
-                  style={{ scrollSnapType: "x mandatory", scrollbarWidth: "none" }}
-                >
-                  {results.matched_shades.map((shade, i) => (
-                    <motion.div
-                      key={shade.shade_name}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * i + 0.2, duration: 0.4 }}
-                      className="flex-shrink-0 w-52 rounded-xl overflow-hidden"
-                      style={{
-                        scrollSnapAlign: "start",
-                        border: "1px solid rgba(255,255,255,0.07)",
-                      }}
-                    >
-                      <div className="h-28" style={{ backgroundColor: shade.hex }} />
-                      <div className="p-4 bg-[#111] space-y-2">
-                        <p className="text-white text-sm font-medium">{shade.shade_name}</p>
-                        <p className="text-white/40 text-xs leading-relaxed">{shade.description}</p>
-                        {shade.recommendation && (
-                          <p className="text-[#c68642] text-xs leading-relaxed">
-                            {shade.recommendation}
-                          </p>
-                        )}
-                        {shade.match_score != null && (
-                          <div className="pt-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[9px] text-white/20 tracking-widest uppercase">
-                                Match confidence
-                              </span>
-                              <span className="text-[9px] text-white/30 font-mono">
-                                {(shade.match_score * 100).toFixed(0)}%
-                              </span>
-                            </div>
-                            <div
-                              className="h-0.5 rounded-full overflow-hidden"
-                              style={{ background: "rgba(255,255,255,0.06)" }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width:      `${(shade.match_score * 100).toFixed(0)}%`,
-                                  background: "rgba(198,134,66,0.55)",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Scroll dots */}
-                {shadeCount > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-4">
-                    {results.matched_shades.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => scrollToShade(i)}
-                        aria-label={`Go to shade ${i + 1}`}
-                        className="rounded-full transition-all duration-300"
-                        style={{
-                          height:     "5px",
-                          width:      i === activeShadeIdx ? "20px" : "5px",
-                          background: i === activeShadeIdx
-                            ? "#c68642"
-                            : "rgba(255,255,255,0.18)",
-                        }}
-                      />
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* ── Beauty picks ── */}
-              {hasRecs && (
-                <section>
-                  <p className="text-white/25 text-[10px] tracking-[0.18em] uppercase mb-4">
-                    Beauty Picks
-                  </p>
-
-                  {/* Sticky category tabs */}
-                  <div
-                    className="sticky top-0 z-10 -mx-4 px-4 py-3 mb-6"
-                    style={{
-                      background:   "#0d0d0d",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <div
-                      className="flex gap-2 overflow-x-auto"
-                      style={{ scrollbarWidth: "none" }}
-                    >
-                      {CATEGORIES.map(({ key, label }) => {
-                        const active = activeCategory === key
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => setActiveCategory(key)}
-                            className="flex-shrink-0 text-xs rounded-full px-4 py-1.5 border transition-colors"
-                            style={{
-                              borderColor: active ? "#c68642" : "rgba(255,255,255,0.09)",
-                              color:       active ? "#c68642" : "rgba(255,255,255,0.35)",
-                              backgroundColor: active
-                                ? "rgba(198,134,66,0.08)"
-                                : "transparent",
-                            }}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Product grid */}
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={activeCategory}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.25 }}
-                      className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                    >
-                      {picks.length === 0 ? (
-                        <p className="col-span-2 text-white/20 text-sm text-center py-8">
-                          No picks in this category.
-                        </p>
-                      ) : (
-                        picks.map((rec, i) => (
-                          <ProductCard key={`${rec.brand}-${rec.shade}-${i}`} rec={rec} />
-                        ))
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </section>
-              )}
-
-            </motion.div>
-
-          ) : (
-
-            /* ── Skincare tab ── */
-            <motion.div
-              key="skincare"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div
-                className="rounded-2xl p-10 flex flex-col items-center gap-4 text-center"
-                style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
-              >
-                {/* Icon */}
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 text-white/30">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-                    <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4" />
-                    <circle cx="12" cy="12" r="1" fill="currentColor" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-white/60 text-sm font-medium mb-2">
-                    Skincare recommendations coming soon.
-                  </p>
-                  <p className="text-white/30 text-xs leading-relaxed max-w-xs mx-auto">
-                    We&apos;ll suggest moisturizers, SPF, and treatments matched to your
-                    skin tone and undertone.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-          )}
-        </AnimatePresence>
-
-        {/* ── Try again ── */}
-        <div className="flex justify-center mt-16">
-          <button
-            onClick={onReset}
-            className="text-sm text-white/25 hover:text-white/55 transition-colors"
-          >
-            ← try another photo
-          </button>
-        </div>
-
-      </div>
-    </div>
-  )
-}
-
-// ── Product card ─────────────────────────────────────────────────────────────
-
-function ProductCard({ rec }: { rec: ShadeRec }) {
-  const [imgSrc, setImgSrc] = useState<string | null>(null)
-
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-    const query  = `${rec.brand} ${rec.product} ${rec.shade}`
-    fetch(`${apiUrl}/search-product`, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ query }),
-    })
-      .then(r => r.json().catch(() => ({ results: [] })))
-      .then(data => {
-        const first = data.results?.[0]
-        if (first) setImgSrc(first.cutoutUrl ?? first.imageUrl ?? null)
-      })
-      .catch(() => { /* leave placeholder */ })
-  }, [rec.brand, rec.product, rec.shade])
-
-  const { color, label } = priceLabel(rec.price_range)
-  const initial  = rec.brand.trim()[0]?.toUpperCase() ?? "?"
-  const shopUrl  = rec.url
-    ? (rec.url.startsWith("http") ? rec.url : `https://${rec.url}`)
-    : null
-
-  return (
-    <div
-      className="rounded-xl overflow-hidden flex flex-col"
-      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
-    >
-      {/* Image area */}
-      <div
-        className="w-full aspect-square flex items-center justify-center flex-shrink-0 overflow-hidden"
-        style={{
-          background:   "linear-gradient(135deg, rgba(198,134,66,0.18) 0%, rgba(198,134,66,0.04) 100%)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-        }}
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-10 md:px-6">
+      {/* ── Lead with the answer ────────────────────────────────────────── */}
+      <motion.header
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="mb-10"
       >
-        {imgSrc ? (
-          <img
-            src={imgSrc}
-            alt={rec.product}
-            className="w-full h-full object-contain"
-            onError={() => setImgSrc(null)}
+        <p className="text-label uppercase text-accent">Your match</p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-5">
+          <span
+            className="h-20 w-20 shrink-0 rounded-full border border-line-strong"
+            style={{ backgroundColor: results.avg_hex }}
+            aria-hidden="true"
           />
-        ) : (
-          <span
-            className="font-light select-none"
-            style={{ fontSize: "clamp(40px, 12vw, 64px)", color: "rgba(198,134,66,0.45)" }}
-          >
-            {initial}
-          </span>
-        )}
-      </div>
-
-      <div className="p-4 flex flex-col gap-2.5 flex-1">
-        <p className="text-white/25 text-[10px] tracking-widest uppercase leading-none">
-          {rec.brand}
-        </p>
-        <p className="text-white text-sm font-medium leading-snug">{rec.product}</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className="text-[11px] border rounded-full px-2.5 py-0.5"
-            style={{ color: "#c68642", borderColor: "rgba(198,134,66,0.28)" }}
-          >
-            {rec.shade}
-          </span>
-          <span className="text-[11px]" style={{ color }}>
-            {rec.price_range} · {label}
-          </span>
+          <div className="min-w-0">
+            <h1 className="font-display text-title text-text md:text-display">
+              {topShade ? topShade.shade_name : `Monk tone ${mstLevel}`}
+            </h1>
+            <p className="mt-1 flex flex-wrap items-center gap-2 text-text-soft">
+              <span>Monk scale {mstLevel}</span>
+              <span aria-hidden="true">·</span>
+              <span style={{ color: undertone.hex }}>{results.undertone}</span>
+              <span aria-hidden="true">·</span>
+              <span className="font-mono text-small text-text-muted">
+                {results.avg_hex}
+              </span>
+            </p>
+          </div>
         </div>
-        <p className="text-white/35 text-xs leading-relaxed flex-1">{rec.why}</p>
 
-        {shopUrl ? (
-          <a
-            href={shopUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 text-xs text-center py-2 rounded-lg transition-colors"
-            style={{ border: "1px solid rgba(198,134,66,0.35)", color: "#c68642" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(198,134,66,0.1)" }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "transparent" }}
+        <p className="mt-4 max-w-prose text-text-soft">{undertone.description}</p>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowDetail((open) => !open)}
+            aria-expanded={showDetail}
+            aria-controls="match-detail"
           >
-            Shop now →
-          </a>
-        ) : (
+            {showDetail ? "Hide the details" : "How we got this"}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onReset}>
+            Start over
+          </Button>
+        </div>
+      </motion.header>
+
+      {/* ── Progressive disclosure: the reasoning, on demand ────────────── */}
+      <AnimatePresence initial={false}>
+        {showDetail && (
+          <motion.section
+            id="match-detail"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <Card className="mb-10" padding="lg">
+              <h2 className="text-heading font-semibold text-text">
+                How the match was made
+              </h2>
+              <p className="mt-2 max-w-prose text-small leading-relaxed text-text-soft">
+                We sampled {results.pixel_count} skin patches across your face,
+                discarded the ones affected by shadow or specular highlight, and
+                averaged the rest to {results.avg_hex}. That average was
+                classified against the Monk Skin Tone scale, and the undertone
+                came from the balance of red and yellow in the same sample.
+              </p>
+
+              <div className="mt-6">
+                <MonkScaleBar highlightLevel={mstLevel} />
+              </div>
+
+              {/* Automated results need a manual override — if we call someone
+                  MST-6 and they disagree, they must be able to say so. */}
+              <fieldset className="mt-6 border-t border-line pt-5">
+                <legend className="text-label uppercase text-text-muted">
+                  Not quite right?
+                </legend>
+                <p className="mt-2 text-small text-text-soft">
+                  Lighting fools this more often than we would like. Set your
+                  own level and the foundation matcher will use it.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((level) => {
+                    const active = level === mstLevel;
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`Monk skin tone level ${level}${
+                          level === detectedLevel ? " (detected)" : ""
+                        }`}
+                        onClick={() =>
+                          setOverrideLevel(level === detectedLevel ? null : level)
+                        }
+                        className={
+                          "min-h-11 min-w-11 rounded-card border text-small tabular-nums transition-colors " +
+                          (active
+                            ? "border-accent bg-accent-dim text-accent-bright"
+                            : "border-line text-text-soft hover:border-line-strong hover:text-text")
+                        }
+                      >
+                        {level}
+                      </button>
+                    );
+                  })}
+                </div>
+                {overrideLevel !== null && (
+                  <p className="mt-3 text-small text-warn">
+                    Using level {overrideLevel} instead of the detected{" "}
+                    {detectedLevel}.{" "}
+                    <button
+                      type="button"
+                      onClick={() => setOverrideLevel(null)}
+                      className="underline hover:text-text"
+                    >
+                      Reset
+                    </button>
+                  </p>
+                )}
+              </fieldset>
+            </Card>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* ── Shade range ─────────────────────────────────────────────────── */}
+      {results.matched_shades.length > 0 && (
+        <section className="mb-12" aria-labelledby="shades-heading">
+          <h2
+            id="shades-heading"
+            className="mb-4 text-heading font-semibold text-text"
+          >
+            Your shade range
+          </h2>
+          {/* A range rather than one answer: the classifier has real
+              uncertainty, and showing it is more honest than a single pick. */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {results.matched_shades.map((shade) => (
+              <Card key={shade.shade_name} padding="sm">
+                <ShadeSwatch
+                  hex={shade.hex}
+                  name={shade.shade_name}
+                  detail={shade.description}
+                />
+                {typeof shade.match_score === "number" && (
+                  <p className="mt-3 text-label uppercase text-text-muted">
+                    {Math.round(shade.match_score * 100)}% match
+                  </p>
+                )}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Recommendations ─────────────────────────────────────────────── */}
+      {tabs.length > 0 ? (
+        <section aria-labelledby="recs-heading">
+          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+            <h2
+              id="recs-heading"
+              className="text-heading font-semibold text-text"
+            >
+              Recommended for you
+            </h2>
+            <p className="text-small text-text-muted">
+              {allProducts.length} products across {tabs.length} categories
+            </p>
+          </div>
+
+          <Tabs
+            tabs={tabs}
+            activeId={category}
+            onChange={(id) => setCategory(id as CategoryKey)}
+            label="Product categories"
+            className="mb-6"
+          />
+
           <div
-            className="mt-1 text-xs text-center py-2 rounded-lg"
-            style={{ border: "1px solid rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.15)" }}
+            role="tabpanel"
+            id={`panel-${category}`}
+            aria-labelledby={`tab-${category}`}
           >
-            Shop now →
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={category}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+              >
+                {picks.map((product) => (
+                  <ProductCard
+                    key={`${product.brand}-${product.product}`}
+                    product={{
+                      ...product,
+                      imageUrl: images[imageKey(product.brand, product.product)],
+                    }}
+                    imageLoading={imagesLoading}
+                  />
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </section>
+      ) : (
+        <Card padding="lg">
+          <h2 className="text-heading font-semibold text-text">
+            No product picks this time
+          </h2>
+          <p className="mt-2 text-small text-text-soft">
+            Your shade match above is still good. Product recommendations come
+            from a separate step that didn&apos;t return — try again in a moment.
+          </p>
+        </Card>
+      )}
+
+      {/* ── Foundation matcher ──────────────────────────────────────────── */}
+      <section className="mt-14" aria-labelledby="matcher-heading">
+        <h2
+          id="matcher-heading"
+          className="text-heading font-semibold text-text"
+        >
+          Already know a foundation that fits?
+        </h2>
+        <p className="mt-1 max-w-prose text-small text-text-soft">
+          Name one that matches you and we&apos;ll find the equivalent in other
+          brands.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <label htmlFor="foundation-input" className="sr-only-focusable">
+            Foundation brand and shade
+          </label>
+          <input
+            id="foundation-input"
+            type="text"
+            value={foundInput}
+            onChange={(event) => setFoundInput(event.target.value)}
+            onKeyDown={(event) => event.key === "Enter" && runFoundationMatch()}
+            placeholder="e.g. Maybelline Fit Me 220"
+            className="min-h-12 flex-1 rounded-pill border border-line bg-surface px-5 text-text placeholder:text-text-muted focus:border-accent focus:outline-none"
+          />
+          <Button
+            onClick={runFoundationMatch}
+            disabled={matching || !foundInput.trim()}
+          >
+            {matching ? "Matching…" : "Find matches"}
+          </Button>
+        </div>
+
+        {matches !== null && (
+          <div className="mt-5" role="status">
+            {matches.length === 0 ? (
+              <p className="text-small text-text-muted">
+                No close equivalents found for that one.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {matches.map((match) => (
+                  <Card key={`${match.brand}-${match.shade}`} padding="sm">
+                    <p className="text-label uppercase text-text-muted">
+                      {match.brand}
+                    </p>
+                    <p className="mt-1 font-medium text-text">{match.name}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge tone="neutral">{match.shade}</Badge>
+                      <span className="text-small text-text-muted">
+                        {match.price_tier}
+                      </span>
+                    </div>
+                    {match.match_reason && (
+                      <p className="mt-2 text-small text-text-soft">
+                        {match.match_reason}
+                      </p>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
-      </div>
+      </section>
     </div>
-  )
-}
-
-// ── Foundation match card ─────────────────────────────────────────────────────
-
-function FoundationMatchCard({ match }: { match: FoundationMatch }) {
-  const { color, label } = priceLabel(match.price_tier)
-
-  return (
-    <div
-      className="rounded-xl p-4 space-y-2.5"
-      style={{ border: "1px solid rgba(255,255,255,0.07)", background: "#111" }}
-    >
-      <p className="text-white/25 text-[10px] tracking-widest uppercase leading-none">
-        {match.brand}
-      </p>
-      <p className="text-white text-sm font-medium leading-snug">{match.name}</p>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span
-          className="text-[11px] border rounded-full px-2.5 py-0.5"
-          style={{ color: "#c68642", borderColor: "rgba(198,134,66,0.28)" }}
-        >
-          {match.shade}
-        </span>
-        <span className="text-[11px]" style={{ color }}>
-          {match.price_tier} · {label}
-        </span>
-      </div>
-      <p className="text-white/35 text-xs leading-relaxed">{match.match_reason}</p>
-    </div>
-  )
-}
-
-// ── Animated MST counter ──────────────────────────────────────────────────────
-
-function MstCounter({ level }: { level: number }) {
-  const [displayed, setDisplayed] = useState(1)
-
-  useEffect(() => {
-    const duration  = 800
-    const startTime = performance.now()
-
-    function tick(now: number) {
-      const progress = Math.min((now - startTime) / duration, 1)
-      const eased    = 1 - Math.pow(1 - progress, 3)
-      setDisplayed(Math.round(1 + (level - 1) * eased))
-      if (progress < 1) requestAnimationFrame(tick)
-    }
-
-    requestAnimationFrame(tick)
-  }, [level])
-
-  return (
-    <p className="text-white text-3xl font-light tracking-tight">
-      MST-{displayed}
-    </p>
-  )
+  );
 }
