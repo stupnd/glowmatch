@@ -19,6 +19,7 @@ from api.limits import (
     limiter,
     spend_guard,
 )
+from api.product_images import resolve_many
 from api.uploads import read_image_upload
 from color_utils import preprocess_image
 from detection.face_detection import (
@@ -335,6 +336,44 @@ def _ddgs_image_search(query: str) -> list[dict]:
             safesearch="moderate",
         ))
 
+
+
+# ── Product images (batch) ────────────────────────────────────────────────────
+
+class ProductRef(BaseModel):
+    brand:   str
+    product: str
+
+
+class ProductImagesRequest(BaseModel):
+    products: list[ProductRef]
+
+
+# A full recommendation set is 27 products. Allow a little headroom, but cap it
+# so one request can't fan out into hundreds of DDGS lookups.
+_MAX_IMAGE_LOOKUPS = 40
+
+
+@router.post("/product-images")
+async def product_images(request: Request, req: ProductImagesRequest) -> dict:
+    """Resolve photo URLs for recommendation cards.
+
+    Split out of /analyze deliberately: 27 sequential image searches would
+    dominate analysis latency and get the deploy's IP throttled. Results are
+    cached, so repeat products across users cost nothing.
+    """
+    limiter.check(client_key(request), "search", SEARCH_RULES)
+
+    pairs = [
+        (p.brand.strip(), p.product.strip())
+        for p in req.products[:_MAX_IMAGE_LOOKUPS]
+        if p.brand.strip() and p.product.strip()
+    ]
+    if not pairs:
+        return {"images": {}}
+
+    images = await resolve_many(pairs)
+    return {"images": images}
 
 
 @router.post("/search-product")
