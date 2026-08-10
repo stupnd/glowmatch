@@ -225,3 +225,4 @@ backend/.venv-py39-old/
 
 # Generated eval reports
 backend/eval/results_classifier.json
+backend/eval/audit.json
