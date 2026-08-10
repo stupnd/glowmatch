@@ -1,38 +1,50 @@
-import type { Metadata } from "next";
-import { Playfair_Display, DM_Sans } from "next/font/google";
-import "@/styles/globals.css";
+import type { Metadata, Viewport } from "next";
+import { Inter, Fraunces } from "next/font/google";
 import { Navbar } from "@/components/layout/Navbar";
+import "./globals.css";
 
-const playfair = Playfair_Display({
+const inter = Inter({
   subsets: ["latin"],
-  weight: ["700"],
-  variable: "--font-playfair",
+  variable: "--font-inter",
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+// Editorial serif for the one hero line per screen. Optical sizing keeps it
+// from looking spindly at display sizes.
+const fraunces = Fraunces({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-dm-sans",
+  variable: "--font-fraunces",
   display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 export const metadata: Metadata = {
-  title: "Tinted",
+  title: "Tinted — Your Perfect Shade",
   description:
-    "Tinted — bold, color-forward beauty intelligence for shades, picks, and lip labs.",
+    "Find your foundation match and build a skincare routine, from a photo or a two-minute quiz.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b0b0c",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className={`${playfair.variable} ${dmSans.variable}`}>
-      <body>
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+      <body className="min-h-screen bg-bg text-text antialiased">
+        {/* First thing in the tab order — keyboard users shouldn't have to
+            traverse the nav on every page. */}
+        <a href="#main" className="sr-only-focusable">
+          Skip to content
+        </a>
         <Navbar />
-        <main className="min-h-screen pt-16">{children}</main>
+        <main id="main" className="pt-16">
+          {children}
+        </main>
       </body>
     </html>
   );

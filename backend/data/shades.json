@@ -1,0 +1,51 @@
+[
+  {"shade_name": "100W",  "hex": "#f5d2ae", "mst_range": [1, 1], "undertone": "warm",    "description": "Very fair with warm peachy undertone"},
+  {"shade_name": "100N",  "hex": "#f4d4ba", "mst_range": [1, 1], "undertone": "neutral", "description": "Very fair with neutral undertone"},
+  {"shade_name": "105W",  "hex": "#f2ceaa", "mst_range": [1, 1], "undertone": "warm",    "description": "Very fair with warm peachy-golden undertone"},
+  {"shade_name": "110N",  "hex": "#f0caa8", "mst_range": [1, 2], "undertone": "neutral", "description": "Fair with neutral beige undertone"},
+
+  {"shade_name": "110W",  "hex": "#eec89e", "mst_range": [2, 2], "undertone": "warm",    "description": "Fair with warm peach undertone"},
+  {"shade_name": "115N",  "hex": "#edc6a2", "mst_range": [2, 2], "undertone": "neutral", "description": "Fair with neutral golden-beige undertone"},
+  {"shade_name": "120N",  "hex": "#ebc4a0", "mst_range": [2, 2], "undertone": "neutral", "description": "Fair-light with neutral beige undertone"},
+  {"shade_name": "120C",  "hex": "#e8c4a6", "mst_range": [2, 3], "undertone": "cool",    "description": "Fair-light with cool pink-rose undertone"},
+
+  {"shade_name": "125N",  "hex": "#e8bf96", "mst_range": [3, 3], "undertone": "neutral", "description": "Light with neutral golden undertone"},
+  {"shade_name": "130C",  "hex": "#e4bca0", "mst_range": [3, 3], "undertone": "cool",    "description": "Light with cool pink-rose undertone"},
+  {"shade_name": "130W",  "hex": "#e0b888", "mst_range": [3, 3], "undertone": "warm",    "description": "Light with warm golden undertone"},
+  {"shade_name": "140N",  "hex": "#dcb486", "mst_range": [3, 4], "undertone": "neutral", "description": "Light to light-medium with neutral beige undertone"},
+
+  {"shade_name": "140W",  "hex": "#d8ae80", "mst_range": [4, 4], "undertone": "warm",    "description": "Light-medium with warm honey undertone"},
+  {"shade_name": "145N",  "hex": "#d4a87a", "mst_range": [4, 4], "undertone": "neutral", "description": "Light-medium with neutral sand undertone"},
+  {"shade_name": "150N",  "hex": "#d0a478", "mst_range": [4, 4], "undertone": "neutral", "description": "Light-medium with neutral undertone"},
+  {"shade_name": "150W",  "hex": "#cca072", "mst_range": [4, 5], "undertone": "warm",    "description": "Light-medium to medium with warm honey undertone"},
+
+  {"shade_name": "155N",  "hex": "#c89868", "mst_range": [5, 5], "undertone": "neutral", "description": "Medium with neutral tan undertone"},
+  {"shade_name": "160N",  "hex": "#c49464", "mst_range": [5, 5], "undertone": "neutral", "description": "Medium with neutral undertone"},
+  {"shade_name": "165C",  "hex": "#c29268", "mst_range": [5, 5], "undertone": "cool",    "description": "Medium with cool taupe undertone"},
+  {"shade_name": "185N",  "hex": "#bc8860", "mst_range": [5, 6], "undertone": "neutral", "description": "Medium to medium-deep with neutral undertone"},
+
+  {"shade_name": "190N",  "hex": "#b27854", "mst_range": [6, 6], "undertone": "neutral", "description": "Medium-deep with neutral undertone"},
+  {"shade_name": "200W",  "hex": "#ae7450", "mst_range": [6, 6], "undertone": "warm",    "description": "Medium-deep with warm caramel undertone"},
+  {"shade_name": "200N",  "hex": "#ac724e", "mst_range": [6, 6], "undertone": "neutral", "description": "Medium-deep with neutral chestnut undertone"},
+  {"shade_name": "210N",  "hex": "#a46c48", "mst_range": [6, 7], "undertone": "neutral", "description": "Medium-deep to tan with neutral undertone"},
+
+  {"shade_name": "220N",  "hex": "#986240", "mst_range": [7, 7], "undertone": "neutral", "description": "Tan with neutral walnut undertone"},
+  {"shade_name": "220W",  "hex": "#94603e", "mst_range": [7, 7], "undertone": "warm",    "description": "Tan with warm amber undertone"},
+  {"shade_name": "240N",  "hex": "#8a5a34", "mst_range": [7, 7], "undertone": "neutral", "description": "Deep-medium with neutral undertone"},
+  {"shade_name": "240W",  "hex": "#885832", "mst_range": [7, 8], "undertone": "warm",    "description": "Deep-medium with warm mahogany undertone"},
+
+  {"shade_name": "260N",  "hex": "#784c28", "mst_range": [8, 8], "undertone": "neutral", "description": "Deep with neutral espresso undertone"},
+  {"shade_name": "260W",  "hex": "#744826", "mst_range": [8, 8], "undertone": "warm",    "description": "Deep with warm red-mahogany undertone"},
+  {"shade_name": "290N",  "hex": "#683e20", "mst_range": [8, 8], "undertone": "neutral", "description": "Deep with neutral cocoa undertone"},
+  {"shade_name": "300N",  "hex": "#60381a", "mst_range": [8, 9], "undertone": "neutral", "description": "Deep to very deep with neutral undertone"},
+
+  {"shade_name": "300W",  "hex": "#5c3216", "mst_range": [9, 9], "undertone": "warm",    "description": "Very deep with warm toffee undertone"},
+  {"shade_name": "310N",  "hex": "#562c10", "mst_range": [9, 9], "undertone": "neutral", "description": "Very deep with neutral undertone"},
+  {"shade_name": "310W",  "hex": "#52280c", "mst_range": [9, 9], "undertone": "warm",    "description": "Very deep with warm undertone"},
+  {"shade_name": "370N",  "hex": "#481e06", "mst_range": [9, 10], "undertone": "neutral", "description": "Very deep to deepest with neutral undertone"},
+
+  {"shade_name": "380N",  "hex": "#3c1604", "mst_range": [10, 10], "undertone": "neutral", "description": "Deepest with neutral ebony undertone"},
+  {"shade_name": "390N",  "hex": "#361202", "mst_range": [10, 10], "undertone": "neutral", "description": "Deepest with neutral rich espresso undertone"},
+  {"shade_name": "420N",  "hex": "#2c1002", "mst_range": [10, 10], "undertone": "neutral", "description": "Deepest with neutral undertone"},
+  {"shade_name": "490N",  "hex": "#221008", "mst_range": [10, 10], "undertone": "neutral", "description": "Deepest shade with neutral blue-black undertone"}
+]

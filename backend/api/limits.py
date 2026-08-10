@@ -35,12 +35,12 @@ def _env_int(name: str, default: int) -> int:
 
 
 # Claude pricing, USD per million tokens. Update if the model changes.
-# claude-sonnet-4-5 bills at $3 / $15 per MTok (input / output).
-CLAUDE_INPUT_PER_MTOK = _env_float("CLAUDE_INPUT_PER_MTOK", 3.00)
-CLAUDE_OUTPUT_PER_MTOK = _env_float("CLAUDE_OUTPUT_PER_MTOK", 15.00)
+# claude-haiku-4-5 bills at $1 / $5 per MTok (input / output).
+CLAUDE_INPUT_PER_MTOK = _env_float("CLAUDE_INPUT_PER_MTOK", 1.00)
+CLAUDE_OUTPUT_PER_MTOK = _env_float("CLAUDE_OUTPUT_PER_MTOK", 5.00)
 
-# remove.bg bills per call, not per token. One credit ≈ $0.09 on the pay-as-you-go
-# tier; override to match whatever plan is actually attached.
+# remove.bg bills per call, not per token. Currently unused — `remove_background`
+# is defined but no longer called. Kept so the accounting is ready if it returns.
 REMOVEBG_COST_PER_CALL = _env_float("REMOVEBG_COST_PER_CALL", 0.09)
 
 # Hard ceiling on what a single day can cost. Once crossed, the paid paths
@@ -192,6 +192,27 @@ class SpendGuard:
 spend_guard = SpendGuard(DAILY_BUDGET_USD)
 
 
+# Per-model rates, USD per million tokens (input, output). The backend calls two
+# different models — Haiku for recommendations, Sonnet for foundation matching —
+# so billing has to be model-aware. Matched by prefix, since ids carry date
+# suffixes (e.g. claude-haiku-4-5-20251001).
+MODEL_PRICING: tuple[tuple[str, float, float], ...] = (
+    ("claude-haiku-4-5", 1.00, 5.00),
+    ("claude-sonnet-4-5", 3.00, 15.00),
+    ("claude-sonnet-4-6", 3.00, 15.00),
+    ("claude-opus-4", 5.00, 25.00),
+)
+
+
+def _rates_for(model: str | None) -> tuple[float, float]:
+    """Rates for a model id, falling back to the env-configured defaults."""
+    if model:
+        for prefix, rate_in, rate_out in MODEL_PRICING:
+            if model.startswith(prefix):
+                return rate_in, rate_out
+    return CLAUDE_INPUT_PER_MTOK, CLAUDE_OUTPUT_PER_MTOK
+
+
 def record_claude_usage(message) -> float:
     """Bill a Claude response against today's budget using its real token counts.
 
@@ -201,12 +222,10 @@ def record_claude_usage(message) -> float:
     if usage is None:
         return 0.0
 
+    rate_in, rate_out = _rates_for(getattr(message, "model", None))
     input_tokens = getattr(usage, "input_tokens", 0) or 0
     output_tokens = getattr(usage, "output_tokens", 0) or 0
-    cost = (
-        input_tokens / 1_000_000 * CLAUDE_INPUT_PER_MTOK
-        + output_tokens / 1_000_000 * CLAUDE_OUTPUT_PER_MTOK
-    )
+    cost = input_tokens / 1_000_000 * rate_in + output_tokens / 1_000_000 * rate_out
     spend_guard.record(cost)
     return cost
 

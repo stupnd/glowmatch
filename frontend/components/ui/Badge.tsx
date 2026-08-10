@@ -2,30 +2,29 @@ import { type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: "plum" | "flare" | "mauve" | "neutral";
+  tone?: "accent" | "neutral" | "success" | "warn" | "danger";
 }
 
-const toneStyles: Record<
-  NonNullable<BadgeProps["tone"]>,
-  string
-> = {
-  plum: "border-plum/40 bg-plum/10 text-plum",
-  flare: "border-flare/50 bg-flare/15 text-plum",
-  mauve: "border-mauve/50 bg-blush text-berry",
-  neutral: "border-berry/15 bg-canvas text-berry",
+const tones: Record<NonNullable<BadgeProps["tone"]>, string> = {
+  accent: "border-accent/40 bg-accent-dim text-accent-bright",
+  neutral: "border-line-strong bg-raised text-text-soft",
+  success: "border-success/40 bg-success/10 text-success",
+  warn: "border-warn/40 bg-warn/10 text-warn",
+  danger: "border-danger/40 bg-danger/10 text-danger",
 };
 
 export function Badge({
   className,
-  tone = "plum",
+  tone = "accent",
   children,
   ...props
 }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider",
-        toneStyles[tone],
+        "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1",
+        "text-label font-semibold uppercase",
+        tones[tone],
         className,
       )}
       {...props}

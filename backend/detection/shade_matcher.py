@@ -1,270 +1,196 @@
-"""Fenty Beauty Pro Filt'r foundation shade matching."""
+"""Fenty Beauty Pro Filt'r foundation shade matching.
 
-# ---------------------------------------------------------------------------
-# Dataset — 25 Fenty Beauty Pro Filt'r shades mapped to the Monk Skin Tone
-# Scale (MST-1 through MST-10) and undertone (warm / cool / neutral).
-# Each MST level has at least two shades so the fill-from-adjacent logic
-# always has candidates to draw from.
-# ---------------------------------------------------------------------------
+Shade data lives in ``backend/data/shades.json``.  Hex values are
+approximate and should be verified against the official Fenty Beauty
+website before a production release.
 
-_FENTY_SHADES: list[dict] = [
-    # MST-1 — very fair
-    {
-        "shade_name": "100N",
-        "hex": "#f7ede3",
-        "monk_scale": "MST-1",
-        "undertone": "neutral",
-        "description": "very fair with neutral pink undertone",
-    },
-    {
-        "shade_name": "110W",
-        "hex": "#f5e6d2",
-        "monk_scale": "MST-1",
-        "undertone": "warm",
-        "description": "very fair with warm peachy undertone",
-    },
-    # MST-2 — fair
-    {
-        "shade_name": "120W",
-        "hex": "#f2ddc0",
-        "monk_scale": "MST-2",
-        "undertone": "warm",
-        "description": "fair with warm peach undertone",
-    },
-    {
-        "shade_name": "125N",
-        "hex": "#eedabb",
-        "monk_scale": "MST-2",
-        "undertone": "neutral",
-        "description": "fair with neutral golden-beige undertone",
-    },
-    {
-        "shade_name": "130C",
-        "hex": "#eadac8",
-        "monk_scale": "MST-2",
-        "undertone": "cool",
-        "description": "fair with cool pink-rose undertone",
-    },
-    # MST-3 — light
-    {
-        "shade_name": "140W",
-        "hex": "#e8c9a0",
-        "monk_scale": "MST-3",
-        "undertone": "warm",
-        "description": "light with warm golden undertone",
-    },
-    {
-        "shade_name": "145N",
-        "hex": "#e3c49a",
-        "monk_scale": "MST-3",
-        "undertone": "neutral",
-        "description": "light with neutral beige undertone",
-    },
-    # MST-4 — light medium
-    {
-        "shade_name": "150W",
-        "hex": "#d9b485",
-        "monk_scale": "MST-4",
-        "undertone": "warm",
-        "description": "light medium with warm honey undertone",
-    },
-    {
-        "shade_name": "160N",
-        "hex": "#d4ae80",
-        "monk_scale": "MST-4",
-        "undertone": "neutral",
-        "description": "light medium with neutral sand undertone",
-    },
-    {
-        "shade_name": "165C",
-        "hex": "#ccaa80",
-        "monk_scale": "MST-4",
-        "undertone": "cool",
-        "description": "light medium with cool taupe undertone",
-    },
-    # MST-5 — medium
-    {
-        "shade_name": "200W",
-        "hex": "#c49460",
-        "monk_scale": "MST-5",
-        "undertone": "warm",
-        "description": "medium with warm caramel undertone",
-    },
-    {
-        "shade_name": "210N",
-        "hex": "#be8e5a",
-        "monk_scale": "MST-5",
-        "undertone": "neutral",
-        "description": "medium with neutral tan undertone",
-    },
-    # MST-6 — medium deep
-    {
-        "shade_name": "240W",
-        "hex": "#a07850",
-        "monk_scale": "MST-6",
-        "undertone": "warm",
-        "description": "medium deep with warm bronze undertone",
-    },
-    {
-        "shade_name": "250N",
-        "hex": "#9a7048",
-        "monk_scale": "MST-6",
-        "undertone": "neutral",
-        "description": "medium deep with neutral chestnut undertone",
-    },
-    {
-        "shade_name": "260C",
-        "hex": "#956e48",
-        "monk_scale": "MST-6",
-        "undertone": "cool",
-        "description": "medium deep with cool olive undertone",
-    },
-    # MST-7 — tan / deep medium
-    {
-        "shade_name": "300W",
-        "hex": "#7e5a30",
-        "monk_scale": "MST-7",
-        "undertone": "warm",
-        "description": "tan with warm amber undertone",
-    },
-    {
-        "shade_name": "310N",
-        "hex": "#785530",
-        "monk_scale": "MST-7",
-        "undertone": "neutral",
-        "description": "tan with neutral walnut undertone",
-    },
-    # MST-8 — deep
-    {
-        "shade_name": "360W",
-        "hex": "#5e3a18",
-        "monk_scale": "MST-8",
-        "undertone": "warm",
-        "description": "deep with warm red-mahogany undertone",
-    },
-    {
-        "shade_name": "370N",
-        "hex": "#593618",
-        "monk_scale": "MST-8",
-        "undertone": "neutral",
-        "description": "deep with neutral espresso undertone",
-    },
-    {
-        "shade_name": "375C",
-        "hex": "#563418",
-        "monk_scale": "MST-8",
-        "undertone": "cool",
-        "description": "deep with cool blue-black undertone",
-    },
-    # MST-9 — very deep
-    {
-        "shade_name": "430N",
-        "hex": "#3e2410",
-        "monk_scale": "MST-9",
-        "undertone": "neutral",
-        "description": "very deep with neutral cocoa undertone",
-    },
-    {
-        "shade_name": "440W",
-        "hex": "#3c2010",
-        "monk_scale": "MST-9",
-        "undertone": "warm",
-        "description": "very deep with warm toffee undertone",
-    },
-    # MST-10 — deepest
-    {
-        "shade_name": "490N",
-        "hex": "#2c1808",
-        "monk_scale": "MST-10",
-        "undertone": "neutral",
-        "description": "deepest with neutral ebony undertone",
-    },
-    {
-        "shade_name": "495W",
-        "hex": "#2a1606",
-        "monk_scale": "MST-10",
-        "undertone": "warm",
-        "description": "deepest with warm deep mahogany undertone",
-    },
-    {
-        "shade_name": "498N",
-        "hex": "#281404",
-        "monk_scale": "MST-10",
-        "undertone": "neutral",
-        "description": "deepest with neutral rich espresso undertone",
-    },
-]
+Public API
+----------
+load_shades()                                        -> list[dict]
+match_shades(mst_level, undertone, hex, n=3)        -> list[dict]
+match_shades_legacy(mst_level, undertone, n=3)      -> list[dict]
+"""
 
-# Ordered list of all MST labels used for adjacency lookups.
-_MST_ORDER: list[str] = [
-    "MST-1", "MST-2", "MST-3", "MST-4", "MST-5",
-    "MST-6", "MST-7", "MST-8", "MST-9", "MST-10",
-]
+from __future__ import annotations
+
+import functools
+import json
+import logging
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+logger = logging.getLogger(__name__)
+
+_SHADES_PATH = Path(__file__).resolve().parent.parent / "data" / "shades.json"
 
 
-def match_shades(monk_scale: str, undertone: str) -> list[dict]:
-    """Return the top 3 Fenty Beauty Pro Filt'r shades for *monk_scale* and
-    *undertone*.
-
-    Matching priority:
-      1. Exact MST match + exact undertone match
-      2. Exact MST match + any undertone
-      3. Adjacent MST (±1) match, undertone-prioritised, to fill remaining slots
-
-    Always returns exactly 3 shades.  Each dict contains only the fields
-    relevant to the API response: ``shade_name``, ``hex``, and ``description``.
-    """
-    exact: list[dict] = [s for s in _FENTY_SHADES if s["monk_scale"] == monk_scale]
-
-    # Within the exact-MST pool, prefer matching undertone.
-    tone_match = [s for s in exact if s["undertone"] == undertone]
-    tone_other = [s for s in exact if s["undertone"] != undertone]
-    candidates: list[dict] = tone_match + tone_other
-
-    if len(candidates) < 3:
-        candidates.extend(_adjacent_shades(monk_scale, undertone, exclude=candidates))
-
-    selected = candidates[:3]
-    return [_public_fields(s) for s in selected]
+@functools.lru_cache(maxsize=1)
+def load_shades() -> list[dict]:
+    """Read and return the shade dataset, cached after the first call."""
+    with open(_SHADES_PATH, encoding="utf-8") as f:
+        return json.load(f)
 
 
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _adjacent_shades(
-    monk_scale: str,
+def match_shades(
+    mst_level: int,
     undertone: str,
-    exclude: list[dict],
+    hex_color: str = "#808080",
+    n: int = 3,
 ) -> list[dict]:
-    """Collect shades from MST levels immediately adjacent to *monk_scale*,
-    undertone-prioritised, excluding already-selected shades."""
-    exclude_names = {s["shade_name"] for s in exclude}
+    """Return top-*n* shades ranked by LAB colour distance to the measured skin hex.
 
+    Foundation should match the skin it sits on, so the ranking metric is
+    ΔE (Euclidean distance in OpenCV LAB) between the user's measured hex and
+    each shade's swatch hex, plus an undertone-compatibility penalty.  Falls
+    back to the MST-range heuristic when the hex cannot be parsed.
+
+    Each dict contains shade_name, hex, description, recommendation, and
+    match_score (0–1, higher is closer).
+    """
     try:
-        idx = _MST_ORDER.index(monk_scale)
-    except ValueError:
-        idx = -1
-
-    adjacent_mst: list[str] = []
-    if idx > 0:
-        adjacent_mst.append(_MST_ORDER[idx - 1])
-    if idx < len(_MST_ORDER) - 1:
-        adjacent_mst.append(_MST_ORDER[idx + 1])
-
-    pool: list[dict] = [
-        s for s in _FENTY_SHADES
-        if s["monk_scale"] in adjacent_mst and s["shade_name"] not in exclude_names
-    ]
-
-    tone_match = [s for s in pool if s["undertone"] == undertone]
-    tone_other = [s for s in pool if s["undertone"] != undertone]
-    return tone_match + tone_other
+        return _match_shades_lab(undertone, hex_color, n)
+    except Exception as exc:
+        logger.warning("LAB match failed, using legacy fallback: %s", exc)
+        return match_shades_legacy(mst_level, undertone, n)
 
 
-def _public_fields(shade: dict) -> dict:
-    return {
-        "shade_name": shade["shade_name"],
-        "hex": shade["hex"],
-        "description": shade["description"],
-    }
+# Penalties added to ΔE when the shade's undertone doesn't match the user's.
+# Opposite undertone (warm vs cool) is a visible mismatch; neutral shades sit
+# acceptably on any undertone, so the penalty is mild.
+_OPPOSITE_UNDERTONE_PENALTY = 12.0
+_NEUTRAL_UNDERTONE_PENALTY  = 4.0
+
+
+def _hex_to_lab(hex_color: str) -> tuple[float, float, float]:
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    pixel = np.array([[[b, g, r]]], dtype=np.uint8)
+    L, a, b_val = cv2.cvtColor(pixel, cv2.COLOR_BGR2LAB)[0, 0]
+    return (float(L), float(a), float(b_val))
+
+
+def _match_shades_lab(undertone: str, hex_color: str, n: int) -> list[dict]:
+    skin_lab = _hex_to_lab(hex_color)
+
+    ranked: list[tuple[float, float, dict]] = []
+    for shade in load_shades():
+        shade_lab = _hex_to_lab(shade["hex"])
+        delta_e = sum((skin_lab[i] - shade_lab[i]) ** 2 for i in range(3)) ** 0.5
+
+        if shade["undertone"] == undertone:
+            penalty = 0.0
+        elif shade["undertone"] == "neutral" or undertone == "neutral":
+            penalty = _NEUTRAL_UNDERTONE_PENALTY
+        else:
+            penalty = _OPPOSITE_UNDERTONE_PENALTY
+
+        ranked.append((delta_e + penalty, delta_e, shade))
+
+    ranked.sort(key=lambda t: t[0])
+
+    results = []
+    for score, delta_e, shade in ranked[:n]:
+        if shade["undertone"] == undertone:
+            why = (
+                f"{shade['shade_name']} is the closest colour match to your "
+                f"measured skin tone and shares your {undertone} undertone."
+            )
+        elif shade["undertone"] == "neutral":
+            why = (
+                f"{shade['shade_name']} is a close colour match to your measured "
+                f"skin tone — a neutral shade that suits your {undertone} undertone."
+            )
+        else:
+            why = (
+                f"{shade['shade_name']} is a close colour match to your "
+                "measured skin tone."
+            )
+        results.append({
+            "shade_name":     shade["shade_name"],
+            "hex":            shade["hex"],
+            "description":    shade["description"],
+            "recommendation": why,
+            "match_score":    round(1.0 / (1.0 + score / 25.0), 4),
+        })
+    return results
+
+
+def match_shades_legacy(mst_level: int, undertone: str, n: int = 3) -> list[dict]:
+    """Return exactly *n* Fenty Pro Filt'r shades for *mst_level* / *undertone*.
+
+    Priority order:
+      a. Exact MST range + exact undertone
+      b. Exact MST range + neutral undertone (neutral suits all undertones;
+         skipped when the user is already neutral — those shades were in (a))
+      c. Adjacent MST (±1) + exact undertone
+      d. Adjacent MST (±1) + any undertone  (fill remaining slots)
+
+    Each returned dict contains ``shade_name``, ``hex``, ``description``,
+    and a ``recommendation`` string explaining why the shade was selected.
+    """
+    shades = load_shades()
+    selected: list[dict] = []
+    used: set[str] = set()
+
+    def _in_range(shade: dict, level: int) -> bool:
+        lo, hi = shade["mst_range"]
+        return lo <= level <= hi
+
+    def _is_adjacent(shade: dict, level: int) -> bool:
+        covers_neighbor = _in_range(shade, level - 1) or _in_range(shade, level + 1)
+        return covers_neighbor and not _in_range(shade, level)
+
+    def _adjacent_label(shade: dict, level: int) -> str:
+        lo, hi = shade["mst_range"]
+        if hi < level:
+            return f"one level lighter (MST-{hi})"
+        return f"one level deeper (MST-{lo})"
+
+    def _add(shade: dict, recommendation: str) -> None:
+        if shade["shade_name"] not in used and len(selected) < n:
+            used.add(shade["shade_name"])
+            selected.append({
+                "shade_name":     shade["shade_name"],
+                "hex":            shade["hex"],
+                "description":    shade["description"],
+                "recommendation": recommendation,
+            })
+
+    # (a) Exact MST + exact undertone
+    for s in shades:
+        if _in_range(s, mst_level) and s["undertone"] == undertone:
+            _add(s, (
+                f"{s['shade_name']} is a direct match — "
+                f"MST-{mst_level} depth with your {undertone} undertone."
+            ))
+
+    # (b) Exact MST + neutral (skipped when user undertone is neutral)
+    if undertone != "neutral":
+        for s in shades:
+            if _in_range(s, mst_level) and s["undertone"] == "neutral":
+                _add(s, (
+                    f"{s['shade_name']} is matched to your MST-{mst_level} depth — "
+                    "a neutral shade that suits all undertones."
+                ))
+
+    # (c) Adjacent MST + exact undertone
+    for s in shades:
+        if _is_adjacent(s, mst_level) and s["undertone"] == undertone:
+            adj = _adjacent_label(s, mst_level)
+            _add(s, (
+                f"{s['shade_name']} is {adj} and shares "
+                f"your {undertone} undertone — a close match."
+            ))
+
+    # (d) Adjacent MST + any undertone
+    for s in shades:
+        if _is_adjacent(s, mst_level):
+            adj = _adjacent_label(s, mst_level)
+            _add(s, (
+                f"{s['shade_name']} is {adj} — "
+                f"a {s['undertone']} shade near your depth."
+            ))
+
+    return selected[:n]

@@ -2,32 +2,60 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "accent" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
+  /** Stretch to the container width — the default on mobile CTAs. */
+  block?: boolean;
 }
 
+// min-h values keep every size at or above the 44px touch target WCAG 2.2 asks
+// for, including "sm" — a small button is still a finger target.
+const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
+  sm: "min-h-11 px-4 text-small",
+  md: "min-h-12 px-6 text-small",
+  lg: "min-h-14 px-8 text-body",
+};
+
+const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
+  // Dark text on the accent, not white: white on #c68642 is 3.05:1 and fails
+  // AA, while the page background on it is 6.45:1.
+  primary:
+    "bg-accent text-bg font-semibold hover:bg-accent-bright active:brightness-95",
+  secondary:
+    "bg-raised text-text border border-line-strong hover:border-accent hover:text-accent-bright",
+  ghost:
+    "bg-transparent text-text-soft hover:bg-raised hover:text-text",
+  danger:
+    "bg-transparent text-danger border border-danger/40 hover:bg-danger/10",
+};
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", type = "button", ...props }, ref) => {
-    const base =
-      "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold tracking-wide transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-40";
-
-    const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-      primary:
-        "bg-plum text-canvas shadow-plum hover:bg-plum-dark focus-visible:outline-plum",
-      accent:
-        "bg-flare text-canvas shadow-rose hover:bg-flare-dark focus-visible:outline-flare",
-      ghost:
-        "border-2 border-plum bg-transparent text-plum hover:bg-blush focus-visible:outline-plum",
-    };
-
-    return (
-      <button
-        ref={ref}
-        type={type}
-        className={cn(base, variants[variant], className)}
-        {...props}
-      />
-    );
-  },
+  (
+    {
+      className,
+      variant = "primary",
+      size = "md",
+      block = false,
+      type = "button",
+      ...props
+    },
+    ref,
+  ) => (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 rounded-pill",
+        "tracking-wide transition-all duration-[--duration-fast] ease-[--ease-out-soft]",
+        "disabled:pointer-events-none disabled:opacity-40",
+        sizes[size],
+        variants[variant],
+        block && "w-full",
+        className,
+      )}
+      {...props}
+    />
+  ),
 );
 
 Button.displayName = "Button";

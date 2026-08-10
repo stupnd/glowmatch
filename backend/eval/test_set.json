@@ -1,0 +1,39 @@
+{
+  "samples": [
+    {
+      "id": "placeholder_mst01_neutral",
+      "image_path": "images/placeholder_mst01_neutral.jpg",
+      "true_mst": 1,
+      "lighting": "neutral",
+      "notes": "Placeholder — replace with a real MST-1 face photo in neutral (overcast/window) light"
+    },
+    {
+      "id": "placeholder_mst03_warm",
+      "image_path": "images/placeholder_mst03_warm.jpg",
+      "true_mst": 3,
+      "lighting": "warm",
+      "notes": "Placeholder — replace with a real MST-3 face photo in warm (ring light/indoor bulb) light"
+    },
+    {
+      "id": "placeholder_mst05_neutral",
+      "image_path": "images/placeholder_mst05_neutral.jpg",
+      "true_mst": 5,
+      "lighting": "neutral",
+      "notes": "Placeholder — replace with a real MST-5 face photo in neutral light"
+    },
+    {
+      "id": "placeholder_mst07_warm",
+      "image_path": "images/placeholder_mst07_warm.jpg",
+      "true_mst": 7,
+      "lighting": "warm",
+      "notes": "Placeholder — replace with a real MST-7 face photo in warm light"
+    },
+    {
+      "id": "placeholder_mst09_low",
+      "image_path": "images/placeholder_mst09_low.jpg",
+      "true_mst": 9,
+      "lighting": "low",
+      "notes": "Placeholder — replace with a real MST-9 face photo in low (dim/underexposed) light"
+    }
+  ]
+}

@@ -1,6 +1,5 @@
 import json
 import os
-import random
 
 import anthropic
 
@@ -8,27 +7,85 @@ from api.limits import record_claude_usage
 
 client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-BUDGET_CONTEXT: dict[str, str] = {
+# Budget keys must match what the frontend sends ("drugstore" | "mid" | "high" | "all").
+_BUDGET_RULES: dict[str, str] = {
     "drugstore": (
-        "ONLY recommend drugstore brands "
-        "(Maybelline, NYX, e.l.f, Wet n Wild, LA Girl, Milani, Revlon, CoverGirl). "
-        "Price range $ only. Do NOT suggest any mid-range or luxury brands."
+        "Budget: DRUGSTORE only. Every product must be under $20. "
+        "Choose from: Maybelline, NYX, e.l.f., Wet n Wild, LA Girl, Milani, "
+        "Revlon, CoverGirl, Black Radiance, Flower Beauty. "
+        "Set price_range to \"$\" for every entry. "
+        "Do NOT include mid-range or luxury brands."
     ),
-    "mid-range": (
-        "ONLY recommend mid-range brands "
-        "(MAC, Urban Decay, Morphe, Too Faced, Tarte, ColourPop, Anastasia Beverly Hills). "
-        "Price range $$ only. Do NOT suggest drugstore or luxury brands."
+    "mid": (
+        "Budget: MID-RANGE only. Every product must cost $20–$60. "
+        "Choose from: MAC, Urban Decay, Morphe, Too Faced, Tarte, ColourPop, "
+        "Anastasia Beverly Hills, Tower 28, Saie, Mented, Uoma Beauty. "
+        "Set price_range to \"$$\" for every entry. "
+        "Do NOT include drugstore or luxury brands."
     ),
-    "high-end": (
-        "ONLY recommend high-end/luxury brands "
-        "(Fenty Beauty, NARS, Charlotte Tilbury, Dior, YSL, Pat McGrath, Armani Beauty). "
-        "Price range $$$ only. Do NOT suggest drugstore or mid-range brands."
+    "high": (
+        "Budget: HIGH-END / LUXURY only. Every product must cost over $60. "
+        "Choose from: NARS, Charlotte Tilbury, Dior Beauty, YSL Beauté, "
+        "Pat McGrath Labs, Armani Beauty, Bobbi Brown, Sisley, La Mer. "
+        "Set price_range to \"$$$\" for every entry. "
+        "Do NOT include drugstore or mid-range brands."
     ),
     "all": (
-        "Mix of drugstore and high-end options. "
-        "For each category include one affordable ($) option and one splurge ($$–$$$) option."
+        "Budget: No constraint. Aim for variety — spread price_range values "
+        "across $, $$, and $$$ so that every category contains at least one "
+        "under-$20 option, and at least three over-$60 products appear overall."
     ),
 }
+
+# Categories to recommend, in the order the results page shows them, with how
+# many picks each gets. Foundation and lip get the most because they are the
+# two the shade match actually constrains; mascara and brow get the fewest
+# because skin tone barely moves the answer.
+CATEGORIES: tuple[tuple[str, int, str], ...] = (
+    ("foundation",     4, "base matched to depth and undertone"),
+    ("concealer",      3, "one shade brighter than the foundation, same undertone"),
+    ("blush",          3, "flattering against this depth, not ashy or chalky"),
+    ("bronzer",        2, "warm enough to read as shadow, not muddy"),
+    ("highlighter",    2, "complements the undertone rather than fighting it"),
+    ("lip",            4, "range from an everyday neutral to a statement shade"),
+    ("eyeshadow",      3, "palettes whose neutrals show up on this depth"),
+    ("setting_powder", 2, "no flashback on this depth"),
+    ("mascara",        2, "general picks — skin tone barely constrains this"),
+    ("brow",           2, "matched to typical hair colour at this depth"),
+)
+
+_TOTAL_PICKS = sum(count for _, count, _ in CATEGORIES)
+
+_ENTRY_SHAPE = (
+    '{ "brand": "<string>", "product": "<string>", '
+    '"shade": "<string — a real, existing shade name; use \\"N/A\\" where a '
+    'product has no shades>", "price_range": "<$ | $$ | $$$>", '
+    '"why": "<one sentence explaining why this suits the user\'s depth and '
+    'undertone>", "url": "<full purchase URL including https:// — '
+    'https://www.sephora.com/search?keyword=... for prestige brands, '
+    'https://www.target.com/s?searchTerm=... for drugstore brands>" }'
+)
+
+
+def _build_schema() -> str:
+    """Render the JSON shape Claude must return, derived from CATEGORIES."""
+    lines = ["{"]
+    for i, (name, count, hint) in enumerate(CATEGORIES):
+        tail = "" if i == len(CATEGORIES) - 1 else ","
+        entries = ",\n    ".join(["{ ... }"] * count)
+        lines.append(f'  "{name}": [  // {count} picks — {hint}')
+        lines.append(f"    {entries}")
+        lines.append(f"  ]{tail}")
+    lines.append("}")
+    return (
+        "Every array entry has exactly this shape:\n"
+        f"{_ENTRY_SHAPE}\n\n"
+        "Return this object (comments are guidance, do not emit them):\n"
+        + "\n".join(lines)
+    )
+
+
+_JSON_SCHEMA = _build_schema()
 
 
 def get_full_beauty_recommendations(
@@ -37,150 +94,110 @@ def get_full_beauty_recommendations(
     avg_hex: str,
     budget: str = "all",
 ) -> dict:
+    """Call Claude to generate beauty product recommendations.
+
+    Returns a structured dict on success, or an empty dict if both attempts
+    at producing valid JSON fail.  Never raises.
     """
-    Call Claude to generate full beauty product recommendations
-    across foundation, concealer, blush, bronzer, and lip.
-    Returns a structured dict with recommendations per category.
-    """
-
-    budget_instruction = BUDGET_CONTEXT.get(budget, BUDGET_CONTEXT["all"])
-
-    seed_brands = random.sample([
-        "Rhode", "Mented", "Black Opal", "Uoma Beauty",
-        "Tower 28", "Saie", "Flower Beauty", "Black Radiance"
-    ], 3)
-
-    prompt = f"""You are an expert inclusive beauty advisor with deep \
-knowledge of makeup products across all price ranges and brands.
-
-A user's skin tone has been analyzed:
-- Monk Skin Tone Scale: {monk_scale} (scale of 1-10, 1=lightest, 10=deepest)
-- Undertone: {undertone} (warm/cool/neutral)
-- Skin hex color: {avg_hex}
-
-BUDGET CONSTRAINT (strictly follow this — it is the user's top priority):
-{budget_instruction}
-
-IMPORTANT: Never recommend the same brand twice across categories combined. \
-Use a wide variety of brands. Include at least one unexpected or indie brand \
-recommendation. For each category always give one drugstore AND one mid/high-end \
-option regardless of budget filter (budget filter affects which gets listed first, \
-not exclusivity).
-Rotate between these brands across categories:
-Foundation: Fenty, Maybelline, NARS, Black Opal, Mented, Make Up For Ever, Lancôme, NYX
-Concealer: Rare Beauty, e.l.f, Tarte, NARS, Black Radiance, L'Oreal, Bobbi Brown
-Blush: Tower 28, Milani, NARS, Fenty, Saie, Glossier, MAC, Flower Beauty
-Bronzer: Fenty, Physicians Formula, Too Faced, Hoola Benefit, Rare Beauty, Milk Makeup
-Lip: Charlotte Tilbury, NYX, MAC, Fenty, Rhode, Mented, Uoma Beauty, e.l.f
-
-Try to feature at least one of these brands if appropriate for the skin tone: {seed_brands}
-
-Give personalized product recommendations across these categories.
-For each product include: brand, product name, specific shade name, \
-price range ($/$$/$$$ for drugstore/mid/high-end), and a 1 sentence \
-reason why it works for this person's specific tone and undertone.
-
-Be specific with shade names — use real shades that actually exist.
-Be inclusive and celebratory in tone.
-
-Respond ONLY with a JSON object in exactly this shape, \
-no preamble, no markdown, no backticks:
-
-{{
-  "foundation": [
-    {{
-      "brand": "Fenty Beauty",
-      "product": "Pro Filt'r Soft Matte",
-      "shade": "310W",
-      "price_range": "$$",
-      "why": "The warm undertone in 310W perfectly matches your golden warmth."
-    }},
-    {{
-      "brand": "Maybelline",
-      "product": "Fit Me Matte + Poreless",
-      "shade": "330 Toffee",
-      "price_range": "$",
-      "why": "A drugstore pick that nails your depth without breaking the bank."
-    }}
-  ],
-  "concealer": [
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }},
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }}
-  ],
-  "blush": [
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }},
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }}
-  ],
-  "bronzer": [
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }},
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }}
-  ],
-  "lip": [
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }},
-    {{
-      "brand": "...",
-      "product": "...",
-      "shade": "...",
-      "price_range": "...",
-      "why": "..."
-    }}
-  ]
-}}
-
-Return exactly 2 options per category (10 products total).
-Strictly respect the budget constraint above — only recommend brands \
-in the specified tier.
-"""
-
-    message = client.messages.create(
-        model="claude-sonnet-4-5",
-        max_tokens=1500,
-        messages=[{"role": "user", "content": prompt}],
+    system = (
+        f"You are a makeup artist recommending products for MST level {monk_scale}, "
+        f"{undertone} undertone, approximate skin hex {avg_hex}. "
+        "Return ONLY a JSON object, no preamble, no markdown fences."
     )
-    record_claude_usage(message)
 
-    text = message.content[0].text.strip()
-    text = text.replace("```json", "").replace("```", "").strip()
-    return json.loads(text)
+    budget_rule = _BUDGET_RULES.get(budget, _BUDGET_RULES["all"])
+
+    user_content = (
+        f"{budget_rule}\n\n"
+        f"Recommend the exact number of products named for each category "
+        f"({_TOTAL_PICKS} products total). "
+        "Use real product names and real shade names — never invent a shade. "
+        "Spread the picks across brands: no brand may appear more than twice "
+        "in the whole response, and no brand twice within one category.\n\n"
+        f"Every field is required and no extra keys are allowed.\n\n{_JSON_SCHEMA}"
+    )
+
+    messages: list[dict] = [{"role": "user", "content": user_content}]
+    raw = _invoke(messages, system)
+
+    try:
+        return _normalise(json.loads(raw))
+    except json.JSONDecodeError:
+        print("[claude_recommendations] First response was not valid JSON — retrying.")
+        retry_messages = messages + [
+            {"role": "assistant", "content": raw},
+            {
+                "role": "user",
+                "content": (
+                    "Your previous response was not valid JSON. "
+                    "Return ONLY the JSON object, starting with { and ending with }."
+                ),
+            },
+        ]
+        raw2 = _invoke(retry_messages, system)
+        try:
+            return _normalise(json.loads(raw2))
+        except json.JSONDecodeError:
+            print(
+                f"[claude_recommendations] Second response also invalid JSON. "
+                f"Raw (first 500 chars): {raw2[:500]}"
+            )
+            return {}
+
+
+_ENTRY_FIELDS = ("brand", "product", "shade", "price_range", "why", "url")
+
+
+def _normalise(parsed: object) -> dict:
+    """Coerce a parsed response into the shape the frontend expects.
+
+    Claude occasionally drops a category or an individual field. Rather than
+    letting that surface as a missing-key crash on the results page, every
+    category is guaranteed present as a list and every entry is guaranteed to
+    carry all six string fields. Entries missing a brand *or* product are
+    dropped outright — there is nothing useful to render without both.
+    """
+    if not isinstance(parsed, dict):
+        return {}
+
+    result: dict[str, list[dict]] = {}
+    for name, _count, _hint in CATEGORIES:
+        raw_entries = parsed.get(name)
+        if not isinstance(raw_entries, list):
+            result[name] = []
+            continue
+
+        entries: list[dict] = []
+        for entry in raw_entries:
+            if not isinstance(entry, dict):
+                continue
+            clean = {f: str(entry.get(f, "") or "").strip() for f in _ENTRY_FIELDS}
+            if not clean["brand"] or not clean["product"]:
+                continue
+            entries.append(clean)
+        result[name] = entries
+
+    missing = [name for name, entries in result.items() if not entries]
+    if missing:
+        print(f"[claude_recommendations] categories came back empty: {missing}")
+    return result
+
+
+def _invoke(messages: list[dict], system: str) -> str:
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        # ~27 products at roughly 70 tokens each, plus JSON scaffolding. 2000 was
+        # sized for 10 picks and would truncate mid-object, which reads to the
+        # caller as a JSON parse failure rather than as a token limit.
+        max_tokens=6000,
+        system=system,
+        messages=messages,
+    )
+    record_claude_usage(response)
+    text = response.content[0].text.strip()
+    # Strip markdown code fences if the model adds them despite being told not to
+    if text.startswith("```"):
+        text = text.split("\n", 1)[-1]  # drop first line (```json or ```)
+    if text.endswith("```"):
+        text = text.rsplit("```", 1)[0]
+    return text.strip()
