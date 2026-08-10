@@ -82,7 +82,7 @@ export default function CameraModal({ onCapture, onClose }: Props) {
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-3 left-3 z-20 text-xs text-white/60 hover:text-white bg-white/10 hover:bg-white/15 rounded-full px-3 py-1.5 transition-colors"
+          className="absolute top-3 left-3 z-20 min-h-11 rounded-pill bg-white/10 px-4 text-small text-white/70 transition-colors hover:bg-white/15 hover:text-white"
         >
           close
         </button>
@@ -91,8 +91,9 @@ export default function CameraModal({ onCapture, onClose }: Props) {
         {!error && (
           <button
             onClick={() => setFacingMode((m) => (m === "user" ? "environment" : "user"))}
-            className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/15 text-white/60 hover:text-white transition-colors"
+            className="absolute top-3 right-3 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:bg-white/15 hover:text-white"
             title="Flip camera"
+            aria-label="Flip camera"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
               <path d="M1 4v6h6" />
@@ -107,7 +108,7 @@ export default function CameraModal({ onCapture, onClose }: Props) {
             <p className="text-white/50 text-sm leading-relaxed">{error}</p>
             <button
               onClick={onClose}
-              className="text-[#c68642] text-sm underline underline-offset-2"
+              className="inline-flex min-h-11 items-center text-small text-accent underline underline-offset-2 hover:text-accent-bright"
             >
               use file upload instead
             </button>
