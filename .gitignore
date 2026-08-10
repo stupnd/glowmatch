@@ -136,6 +136,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.bak
+.env*.bak
 .env.local
 .env*.local
 !.env.example
@@ -220,3 +222,6 @@ frontend/node_modules/
 # Renamed-aside Python 3.9 venv from the 3.11 migration (safe to delete)
 .venv-py39-old/
 backend/.venv-py39-old/
+
+# Generated eval reports
+backend/eval/results_classifier.json
