@@ -75,7 +75,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <AnimatePresence>
       {isOpen ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-berry/60 px-4 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay px-4 backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -84,7 +84,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           role="presentation"
         >
           <motion.div
-            className="relative w-full max-w-md rounded-card border border-mauve/40 bg-canvas p-8 shadow-plum"
+            className="relative w-full max-w-md rounded-card border border-line bg-surface p-8 shadow-lift"
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -94,42 +94,42 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <button
               type="button"
               aria-label="Close"
-              className="absolute right-4 top-4 rounded-full border border-mauve/40 px-2 py-0.5 text-lg leading-none text-plum transition-colors hover:bg-blush"
+              className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-line text-lg leading-none text-text-soft transition-colors hover:border-line-strong hover:text-text"
               onClick={resetAndClose}
             >
               ×
             </button>
 
-            <p className="font-display text-3xl font-bold text-plum">Join Tinted.</p>
-            <p className="mt-2 font-sans text-sm leading-relaxed text-berry/80">
+            <p className="font-display text-title text-text">Join Tinted.</p>
+            <p className="mt-2 text-small leading-relaxed text-text-soft">
               Save shade matches, curate lip combos, and sync across devices.
             </p>
 
             <div className="mt-8 space-y-4">
               {sent ? (
-                <div className="rounded-card border border-flare/40 bg-blush px-4 py-5 text-center font-sans text-sm text-berry">
-                  <p className="font-semibold text-plum">Check your inbox</p>
-                  <p className="mt-2 text-berry/75">
+                <div className="rounded-card border border-success/40 bg-success/10 px-4 py-5 text-center text-small text-text">
+                  <p className="font-semibold text-success">Check your inbox</p>
+                  <p className="mt-2 text-text-soft">
                     We sent a magic link to{" "}
-                    <span className="font-medium text-plum">{email}</span>
+                    <span className="font-medium text-text">{email}</span>
                   </p>
                 </div>
               ) : (
                 <>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-center gap-3 rounded-full border border-mauve/50 bg-canvas py-3 font-sans text-sm font-semibold text-berry shadow-soft transition-colors hover:border-plum hover:bg-blush"
+                    className="flex min-h-12 w-full items-center justify-center gap-3 rounded-pill border border-line-strong bg-raised text-small font-semibold text-text transition-colors hover:border-accent"
                     onClick={google}
                   >
                     <GoogleGlyph /> Continue with Google
                   </button>
 
                   <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-mauve/40" />
-                    <span className="font-sans text-xs font-semibold uppercase tracking-widest text-mauve">
+                    <span className="h-px flex-1 bg-line" />
+                    <span className="text-label uppercase text-text-muted">
                       or email
                     </span>
-                    <span className="h-px flex-1 bg-mauve/40" />
+                    <span className="h-px flex-1 bg-line" />
                   </div>
 
                   <input
@@ -138,13 +138,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && magicLink()}
-                    className="w-full rounded-full border-2 border-mauve/40 bg-canvas px-5 py-3 font-sans text-sm text-berry outline-none ring-plum/30 placeholder:text-mauve focus:border-plum focus:ring-2"
+                    className="min-h-12 w-full rounded-pill border border-line bg-raised px-5 text-small text-text outline-none placeholder:text-text-muted focus:border-accent"
                   />
 
                   <button
                     type="button"
                     disabled={busy || !email.trim()}
-                    className="w-full rounded-full bg-flare py-3 font-sans text-sm font-semibold text-canvas shadow-rose transition-colors hover:bg-flare-dark disabled:opacity-40"
+                    className="min-h-12 w-full rounded-pill bg-accent text-small font-semibold text-bg transition-colors hover:bg-accent-bright disabled:opacity-40"
                     onClick={magicLink}
                   >
                     {busy ? "Sending…" : "Email me a magic link"}
