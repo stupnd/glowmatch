@@ -32,6 +32,7 @@ from detection.face_detection import (
 from detection.monk_classifier import classify_monk, classify_mst_with_distances
 from detection.shade_matcher import match_shades
 from foundation_matcher import match_foundation
+from lip_palette import rank as rank_lip_palette
 from quality_gate import describe as describe_gate, run_quality_gate
 from skincare_quiz import QUESTIONS, score as score_quiz
 
@@ -338,6 +339,22 @@ def _ddgs_image_search(query: str) -> list[dict]:
             safesearch="moderate",
         ))
 
+
+
+# ── Lip palette ───────────────────────────────────────────────────────────────
+
+@router.get("/lip-palette")
+async def lip_palette(undertone: str = "neutral", mst_level: int = 5) -> dict:
+    """Lip colour families ranked for a measured skin tone.
+
+    Deterministic and offline — no rate limit or spend check needed, since it
+    reads a static table. Colours only; product lookup is separate.
+    """
+    return {
+        "undertone": undertone,
+        "mst_level": mst_level,
+        "families": rank_lip_palette(undertone, mst_level),
+    }
 
 
 # ── Skincare quiz ─────────────────────────────────────────────────────────────

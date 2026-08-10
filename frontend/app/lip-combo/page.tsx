@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { TonePalette } from "@/components/lip/TonePalette";
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence, Reorder, useMotionValue } from "framer-motion"
 import { Sticker, SparkleSticker, FlowerSticker, BlobSticker } from "@/components/Stickers"
@@ -900,6 +901,11 @@ export default function LipComboPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 
+  // Colour picked from the tone palette. When set, newly added products take
+  // this instead of the arbitrary rotating palette — which is the whole point
+  // of connecting this page to the analyser.
+  const [paletteHex, setPaletteHex] = useState<string | null>(null)
+
   const runSearch = async (query: string) => {
     setIsSearching(true)
     setSearchError(false)
@@ -935,7 +941,7 @@ export default function LipComboPage() {
       shade: result.shade,
       imageUrl: result.imageUrl,
       cutoutUrl: result.cutoutUrl,
-      hexColor: PRODUCT_COLORS[products.length % PRODUCT_COLORS.length],
+      hexColor: paletteHex ?? PRODUCT_COLORS[products.length % PRODUCT_COLORS.length],
     }
     setProducts(prev => [...prev, newProduct])
     setProductPositions(prev => ({
@@ -1103,6 +1109,14 @@ export default function LipComboPage() {
 
   return (
     <div className="animated-bg paper-texture min-h-screen px-4 py-12">
+
+      {/* ── Colours picked for the user's measured tone ── */}
+      <div className="relative z-10 mx-auto mb-6 max-w-5xl">
+        <TonePalette
+          selectedHex={paletteHex ?? undefined}
+          onPick={(hex) => setPaletteHex(prev => (prev === hex ? null : hex))}
+        />
+      </div>
 
       {/* ── Floating bg stickers ── */}
       <motion.div

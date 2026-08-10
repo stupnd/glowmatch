@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import MonkScaleBar from "./MonkScaleBar";
 import { Badge } from "@/components/ui/Badge";
@@ -10,6 +10,7 @@ import { ProductCard } from "@/components/ui/ProductCard";
 import { ShadeSwatch } from "@/components/ui/ShadeSwatch";
 import { Tabs } from "@/components/ui/Tabs";
 import { useProductImages } from "@/hooks/useProductImages";
+import { saveToneProfile } from "@/lib/toneProfile";
 import {
   API_URL,
   CATEGORY_LABELS,
@@ -68,6 +69,17 @@ export default function ResultsScreen({
 
   const detectedLevel = parseInt(results.monk_scale.split("-")[1], 10);
   const mstLevel = overrideLevel ?? detectedLevel;
+
+  // Persist so other routes can use the measurement — lip-combo reads this.
+  // Saves the override, not the raw detection: if the user corrected us, their
+  // correction is the better answer everywhere else too.
+  useEffect(() => {
+    saveToneProfile({
+      mstLevel,
+      undertone: results.undertone,
+      avgHex: results.avg_hex,
+    });
+  }, [mstLevel, results.undertone, results.avg_hex]);
   const undertone = undertoneTone(results.undertone);
 
   // Every product across every category, so photos resolve in one batched call
