@@ -1,24 +1,51 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
+import type { Metadata, Viewport } from "next";
+import { Inter, Fraunces } from "next/font/google";
+import { Navbar } from "@/components/layout/Navbar";
+import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
-})
+});
+
+// Editorial serif for the one hero line per screen. Optical sizing keeps it
+// from looking spindly at display sizes.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
+});
 
 export const metadata: Metadata = {
   title: "Tinted — Your Perfect Shade",
-  description: "AI-powered foundation shade matching for every skin tone",
-}
+  description:
+    "Find your foundation match and build a skincare routine, from a photo or a two-minute quiz.",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: "#0b0b0c",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-[#0d0d0d] text-white antialiased">
-        {children}
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+      <body className="min-h-screen bg-bg text-text antialiased">
+        {/* First thing in the tab order — keyboard users shouldn't have to
+            traverse the nav on every page. */}
+        <a href="#main" className="sr-only-focusable">
+          Skip to content
+        </a>
+        <Navbar />
+        <main id="main" className="pt-16">
+          {children}
+        </main>
       </body>
     </html>
-  )
+  );
 }
