@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Page } from "@/components/ui/Page";
 import { AnimatePresence, motion } from "framer-motion";
 import MonkScaleBar from "./MonkScaleBar";
 import { Badge } from "@/components/ui/Badge";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ProductCard } from "@/components/ui/ProductCard";
 import { ShadeSwatch } from "@/components/ui/ShadeSwatch";
+import { Section } from "@/components/ui/Section";
 import { Tabs } from "@/components/ui/Tabs";
 import { useProductImages } from "@/hooks/useProductImages";
 import { saveToneProfile } from "@/lib/toneProfile";
@@ -133,7 +135,7 @@ export default function ResultsScreen({
   }, [foundInput, matching, mstLevel, results.undertone]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-24 pt-10 md:px-6">
+    <Page width="grid">
       {/* ── Lead with the answer ────────────────────────────────────────── */}
       <motion.header
         initial={{ opacity: 0, y: 12 }}
@@ -267,13 +269,12 @@ export default function ResultsScreen({
 
       {/* ── Shade range ─────────────────────────────────────────────────── */}
       {results.matched_shades.length > 0 && (
-        <section className="mb-12" aria-labelledby="shades-heading">
-          <h2
-            id="shades-heading"
-            className="mb-4 text-heading font-semibold text-text"
-          >
-            Your shade range
-          </h2>
+        <Section
+          id="shades"
+          title="Your shade range"
+          description="Three shades rather than one — the classifier has real uncertainty under mixed lighting, and a range is the honest answer."
+          aside={`${results.matched_shades.length} matches`}
+        >
           {/* A range rather than one answer: the classifier has real
               uncertainty, and showing it is more honest than a single pick. */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -292,24 +293,16 @@ export default function ResultsScreen({
               </Card>
             ))}
           </div>
-        </section>
+        </Section>
       )}
 
       {/* ── Recommendations ─────────────────────────────────────────────── */}
       {tabs.length > 0 ? (
-        <section aria-labelledby="recs-heading">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
-            <h2
-              id="recs-heading"
-              className="text-heading font-semibold text-text"
-            >
-              Recommended for you
-            </h2>
-            <p className="text-small text-text-muted">
-              {allProducts.length} products across {tabs.length} categories
-            </p>
-          </div>
-
+        <Section
+          id="recs"
+          title="Recommended for you"
+          aside={`${allProducts.length} products · ${tabs.length} categories`}
+        >
           <Tabs
             tabs={tabs}
             activeId={category}
@@ -330,7 +323,7 @@ export default function ResultsScreen({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
-                className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+                className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
               >
                 {picks.map((product) => (
                   <ProductCard
@@ -345,7 +338,7 @@ export default function ResultsScreen({
               </motion.div>
             </AnimatePresence>
           </div>
-        </section>
+        </Section>
       ) : (
         <Card padding="lg">
           <h2 className="text-heading font-semibold text-text">
@@ -359,19 +352,12 @@ export default function ResultsScreen({
       )}
 
       {/* ── Foundation matcher ──────────────────────────────────────────── */}
-      <section className="mt-14" aria-labelledby="matcher-heading">
-        <h2
-          id="matcher-heading"
-          className="text-heading font-semibold text-text"
-        >
-          Already know a foundation that fits?
-        </h2>
-        <p className="mt-1 max-w-prose text-small text-text-soft">
-          Name one that matches you and we&apos;ll find the equivalent in other
-          brands.
-        </p>
-
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <Section
+        id="matcher"
+        title="Already know a foundation that fits?"
+        description="Name one that matches you and we'll find the equivalent in other brands."
+      >
+        <div className="flex flex-col gap-2 sm:flex-row">
           <label htmlFor="foundation-input" className="sr-only-focusable">
             Foundation brand and shade
           </label>
@@ -423,7 +409,7 @@ export default function ResultsScreen({
             )}
           </div>
         )}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 }

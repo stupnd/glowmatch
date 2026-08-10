@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Page } from "@/components/ui/Page";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,14 +18,14 @@ export default function ProfilePage() {
 
   if (loading || !user) {
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-6xl items-center justify-center px-6 py-24">
+      <Page width="grid">
         <div className="h-12 w-48 animate-pulse rounded-card bg-surface" />
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16 md:py-24">
+    <Page width="grid">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -54,6 +55,6 @@ export default function ProfilePage() {
           </p>
         </Card>
       </div>
-    </div>
+    </Page>
   );
 }

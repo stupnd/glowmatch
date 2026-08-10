@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Page } from "@/components/ui/Page";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -32,7 +33,7 @@ export function RoutineResults({
   const byStep = new Map(routine.map((item) => [item.step, item]));
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+    <Page width="list">
       <header className="mb-8">
         <p className="text-label uppercase text-accent">Your routine</p>
         <h1 className="mt-1 font-display text-title text-text md:text-display">
@@ -170,6 +171,6 @@ export function RoutineResults({
         introduce one at a time, and see a dermatologist for persistent
         conditions.
       </p>
-    </div>
+    </Page>
   );
 }

@@ -57,7 +57,7 @@ export function Tabs({ tabs, activeId, onChange, label, className }: TabsProps) 
         // scrolling row keeps the shape intact at any count.
         "flex max-w-full items-center gap-1 overflow-x-auto rounded-pill",
         "border border-line bg-surface p-1",
-        "no-scrollbar",
+        "no-scrollbar fade-edges",
         className,
       )}
     >

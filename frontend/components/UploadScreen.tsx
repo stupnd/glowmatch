@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Page } from "@/components/ui/Page";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import CameraModal from "./CameraModal";
@@ -71,7 +72,7 @@ export default function UploadScreen({
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-20">
+    <Page width="grid">
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -269,6 +270,6 @@ export default function UploadScreen({
           onClose={() => setCamera(false)}
         />
       )}
-    </div>
+    </Page>
   );
 }

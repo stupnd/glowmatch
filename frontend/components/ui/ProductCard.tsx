@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/Badge";
 
 export interface Product {
   brand: string;
@@ -20,10 +19,16 @@ export interface Product {
 /**
  * A recommendation card.
  *
- * Photos come from an image search, so a broken or missing URL is normal rather
- * than exceptional — the card is designed to look complete without one instead
- * of leaving a torn-image icon. Aspect ratio is fixed at 1:1 so a grid of these
- * doesn't reflow as images arrive.
+ * Two things drive the layout:
+ *
+ * 1. **A missing photo is normal, not exceptional.** Image search fails often
+ *    enough that the no-photo state has to look deliberate. The previous
+ *    checkerboard read as a broken asset; this uses a tonal panel with the
+ *    brand monogram, which looks like a choice.
+ *
+ * 2. **Cards must agree on height.** Blurb length varies, which left rows with
+ *    ragged bottoms. The card is a flex column with a clamped blurb and the
+ *    meta row pinned to the bottom, so a row reads as a row.
  */
 export function ProductCard({
   product,
@@ -36,16 +41,31 @@ export function ProductCard({
 }) {
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(product.imageUrl) && !failed;
+  const hasShade = Boolean(product.shade && product.shade !== "N/A");
+  const monogram = (product.brand || product.product).charAt(0).toUpperCase();
 
-  const body = (
-    <>
-      <div
-        className={cn(
-          "relative aspect-square overflow-hidden rounded-[0.6rem]",
-          "border border-line bg-raised",
-          !showImage && "bg-swatch-check",
-        )}
-      >
+  const interactive = Boolean(product.url);
+  const Wrapper = interactive ? "a" : "div";
+  const wrapperProps = interactive
+    ? { href: product.url, target: "_blank", rel: "noopener noreferrer" }
+    : {};
+
+  return (
+    <Wrapper
+      {...wrapperProps}
+      className={cn(
+        "group flex h-full flex-col overflow-hidden rounded-card",
+        "border border-line bg-surface",
+        interactive && [
+          "transition-all duration-[--duration-base] ease-[--ease-out-soft]",
+          "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift",
+        ],
+        className,
+      )}
+    >
+      {/* 4:5 rather than square: it fits more of a grid on screen at once, and
+          most product photography is portrait anyway. */}
+      <div className="relative aspect-4/5 overflow-hidden bg-raised">
         {showImage ? (
           // Plain <img>: sources are arbitrary third-party hosts from an image
           // search, which next/image can't optimise without allow-listing every
@@ -54,129 +74,96 @@ export function ProductCard({
           <img
             src={product.imageUrl as string}
             alt={`${product.brand ? product.brand + " " : ""}${product.product}${
-              product.shade && product.shade !== "N/A"
-                ? ` in shade ${product.shade}`
-                : ""
+              hasShade ? ` in shade ${product.shade}` : ""
             }`}
             loading="lazy"
             decoding="async"
             onError={() => setFailed(true)}
-            className="h-full w-full object-cover transition-transform duration-[--duration-slow] ease-[--ease-out-soft] group-hover:scale-[1.04]"
+            className="h-full w-full object-cover transition-transform duration-[--duration-slow] ease-[--ease-out-soft] group-hover:scale-[1.03]"
           />
         ) : imageLoading ? (
           <div className="absolute inset-0 overflow-hidden">
             <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/6 to-transparent" />
           </div>
         ) : (
-          // No photo: fall back to the shade colour if we have one, else the
-          // brand initial. Either reads as intentional.
-          <div className="flex h-full w-full items-center justify-center">
+          <div
+            className="flex h-full w-full items-center justify-center bg-linear-to-br from-raised to-surface"
+            aria-hidden="true"
+          >
             {product.hex ? (
               <span
-                className="h-14 w-14 rounded-full border border-line-strong"
+                className="h-16 w-16 rounded-full border border-line-strong shadow-card"
                 style={{ backgroundColor: product.hex }}
-                aria-hidden="true"
               />
             ) : (
-              <span
-                className="font-display text-title text-text-muted"
-                aria-hidden="true"
-              >
-                {(product.brand || product.product).charAt(0).toUpperCase()}
+              <span className="font-display text-[2.5rem] leading-none text-text-muted/50">
+                {monogram}
               </span>
             )}
           </div>
         )}
-
-        {product.price_range && (
-          <span
-            className={cn(
-              "absolute right-2 top-2 rounded-pill px-2 py-0.5",
-              "bg-overlay text-label font-semibold text-text backdrop-blur-sm",
-            )}
-          >
-            {product.price_range}
-          </span>
-        )}
       </div>
 
-      <div className="mt-3 space-y-1.5">
+      <div className="flex flex-1 flex-col gap-1 p-3.5">
         {product.brand && (
-          <p className="text-label uppercase text-text-muted">{product.brand}</p>
+          <p className="clamp-1 text-label uppercase text-text-muted">
+            {product.brand}
+          </p>
         )}
-        <p className="font-medium leading-snug text-text">{product.product}</p>
-
-        {product.shade && product.shade !== "N/A" && (
-          <div className="flex items-center gap-2 pt-0.5">
-            {product.hex && (
-              <span
-                className="h-3.5 w-3.5 shrink-0 rounded-full border border-line-strong"
-                style={{ backgroundColor: product.hex }}
-                aria-hidden="true"
-              />
-            )}
-            {/* The shade name is always spelled out — colour alone can't carry
-                meaning for anyone who can't distinguish it. */}
-            <span className="text-small text-text-soft">{product.shade}</span>
-          </div>
-        )}
+        <p className="clamp-2 font-medium leading-snug text-text">
+          {product.product}
+        </p>
 
         {product.why && (
-          <p className="pt-1 text-small leading-relaxed text-text-muted">
+          <p className="clamp-2 mt-0.5 text-small leading-relaxed text-text-muted">
             {product.why}
           </p>
         )}
-      </div>
-    </>
-  );
 
-  if (!product.url) {
-    return (
-      <div
-        className={cn(
-          "group rounded-card border border-line bg-surface p-3",
-          className,
-        )}
-      >
-        {body}
+        {/* mt-auto pins this row to the bottom, so cards of differing blurb
+            length still line up along their footer. */}
+        <div className="mt-auto flex items-center gap-2 pt-3">
+          {hasShade && (
+            <>
+              {product.hex && (
+                <span
+                  className="h-3.5 w-3.5 shrink-0 rounded-full border border-line-strong"
+                  style={{ backgroundColor: product.hex }}
+                  aria-hidden="true"
+                />
+              )}
+              {/* Spelled out — colour alone can't carry meaning. */}
+              <span className="clamp-1 text-small text-text-soft">
+                {product.shade}
+              </span>
+            </>
+          )}
+          {product.price_range && (
+            <span className="ml-auto shrink-0 font-medium text-small text-text-muted">
+              {product.price_range}
+            </span>
+          )}
+        </div>
       </div>
-    );
-  }
 
-  return (
-    <a
-      href={product.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(
-        "group block rounded-card border border-line bg-surface p-3",
-        "transition-all duration-[--duration-base] ease-[--ease-out-soft]",
-        "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift",
-        className,
+      {interactive && (
+        <span className="sr-only-focusable">opens in a new tab</span>
       )}
-    >
-      {body}
-      <span className="mt-2 inline-flex items-center gap-1 text-label uppercase text-accent opacity-0 transition-opacity duration-[--duration-fast] group-hover:opacity-100 group-focus-visible:opacity-100">
-        Shop
-        <span aria-hidden="true">→</span>
-      </span>
-      {/* "opens in a new tab" is announced but not drawn. */}
-      <span className="sr-only-focusable">opens in a new tab</span>
-    </a>
+    </Wrapper>
   );
 }
 
 /** Placeholder used while a whole category is still loading. */
 export function ProductCardSkeleton() {
   return (
-    <div className="rounded-card border border-line bg-surface p-3">
-      <div className="relative aspect-square overflow-hidden rounded-[0.6rem] bg-raised">
+    <div className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface">
+      <div className="relative aspect-4/5 overflow-hidden bg-raised">
         <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/6 to-transparent" />
       </div>
-      <div className="mt-3 space-y-2">
+      <div className="flex flex-1 flex-col gap-2 p-3.5">
         <div className="h-2.5 w-1/3 rounded-pill bg-raised" />
         <div className="h-3.5 w-3/4 rounded-pill bg-raised" />
-        <div className="h-2.5 w-1/2 rounded-pill bg-raised" />
+        <div className="mt-auto h-2.5 w-1/2 rounded-pill bg-raised pt-3" />
       </div>
     </div>
   );
