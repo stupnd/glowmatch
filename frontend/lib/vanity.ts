@@ -185,6 +185,34 @@ export async function addItemToRoutine(
   if (error) throw error;
 }
 
+/**
+ * Persists a whole ordering in one round trip.
+ *
+ * Reordering by writing one row at a time leaves the list briefly inconsistent
+ * if a request fails halfway, and a routine whose steps are in the wrong order
+ * is worse than one that refused to move.
+ */
+export async function reorderRoutineItems(
+  ordered: { id: string }[],
+): Promise<void> {
+  const supabase = createClient();
+  const results = await Promise.all(
+    ordered.map((item, index) =>
+      supabase.from("routine_items").update({ step_order: index }).eq("id", item.id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
+}
+
+export async function updateRoutine(
+  id: string,
+  patch: { title?: string; description?: string | null; occasion?: string | null },
+): Promise<void> {
+  const { error } = await createClient().from("routines").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
 export async function removeRoutineItem(id: string): Promise<void> {
   const { error } = await createClient()
     .from("routine_items")
