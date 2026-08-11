@@ -169,14 +169,31 @@ def _lookup_one(brand: str, product: str) -> str | None:
     if not query:
         return None
 
-    try:
-        with DDGS() as ddgs:
-            candidates = list(
-                ddgs.images(query, max_results=12, safesearch="moderate")
-            )
-    except Exception as exc:
-        print(f"[product-images] lookup failed for {query!r}: {exc}")
-        return None
+    # DDGS is unreliable in a way that looks like "this product has no photo":
+    # it intermittently returns one unrelated result, or nothing, for queries
+    # that work fine seconds later. A single attempt therefore drops photos for
+    # real products. Retry once with a shortened query — the brand plus the
+    # first two words of the product name — which also helps when the model
+    # returns an over-long product string.
+    attempts = [query]
+    short = " ".join(f"{brand} {product}".split()[:3])
+    if short != query:
+        attempts.append(short)
+
+    candidates: list[dict] = []
+    for attempt in attempts:
+        try:
+            with DDGS() as ddgs:
+                candidates = list(
+                    ddgs.images(attempt, max_results=12, safesearch="moderate")
+                )
+        except Exception as exc:
+            print(f"[product-images] lookup failed for {attempt!r}: {exc}")
+            candidates = []
+        # Fewer than three results is the signature of a throttled or empty
+        # response rather than a genuinely obscure product.
+        if len(candidates) >= 3:
+            break
 
     best_url, best_score = None, _MIN_SCORE - 1
     for image in candidates:

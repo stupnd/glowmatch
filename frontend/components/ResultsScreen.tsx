@@ -84,8 +84,6 @@ export default function ResultsScreen({
   }, [mstLevel, results.undertone, results.avg_hex]);
   const undertone = undertoneTone(results.undertone);
 
-  // Every product across every category, so photos resolve in one batched call
-  // rather than one per tab switch.
   const allProducts = useMemo(
     () =>
       CATEGORY_ORDER.flatMap(
@@ -93,7 +91,6 @@ export default function ResultsScreen({
       ),
     [results.recommendations],
   );
-  const { images } = useProductImages(allProducts);
 
   const tabs = useMemo(
     () =>
@@ -109,6 +106,13 @@ export default function ResultsScreen({
 
   const picks = (results.recommendations?.[category] as Product[]) ?? [];
   const topShade = results.matched_shades[0];
+
+  // Resolve the visible category first, then everything else. One batch of 27
+  // meant no card painted until the slowest lookup finished — about five
+  // seconds of empty grid. A category is four products, so the cards the user
+  // is actually looking at fill in around a second, and switching tabs is
+  // instant once the background pass lands (results are cached server-side).
+  const { images } = useProductImages(picks, allProducts);
 
   const runFoundationMatch = useCallback(async () => {
     const input = foundInput.trim();
