@@ -51,16 +51,23 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
 
-  /* A 1.2 modular scale. Display sizes are for the one hero line per screen,
-     never for a section heading. */
-  --text-display: 3.5rem;
-  --text-display--line-height: 1.02;
+  /* Scale runs ~1.33 at the top and ~1.2 lower down. The previous 1.2
+     throughout meant a page heading and a section heading were one step
+     apart, which is why everything read as the same weight — flat hierarchy
+     is most of what "generic" actually means. Hero is deliberately far from
+     everything else: one per page, and it should dominate. */
+  --text-hero: clamp(2.75rem, 7vw, 5.5rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.045em;
+  --text-display: clamp(2rem, 4.5vw, 3.5rem);
+  --text-display--line-height: 1.03;
   --text-display--letter-spacing: -0.03em;
-  --text-title: 2rem;
+  --text-title: 1.75rem;
   --text-title--line-height: 1.15;
   --text-title--letter-spacing: -0.02em;
-  --text-heading: 1.25rem;
-  --text-heading--line-height: 1.3;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.35;
+  --text-heading--letter-spacing: -0.01em;
   --text-body: 1rem;
   --text-body--line-height: 1.6;
   --text-small: 0.875rem;
@@ -87,7 +94,7 @@
   /* One vertical scale, so sections don't each invent their own spacing.
      Gaps within a section come from the block scale; gaps between sections
      from --space-section. */
-  --space-section: 4rem;
+  --space-section: 5rem;
   --space-block: 1.5rem;
 
   /* ── Motion ───────────────────────────────────────────────────────────── */
@@ -137,7 +144,20 @@ body {
    Utilities
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Screen-reader-only, but focusable — used by the skip link. */
+/* Always hidden visually, always present to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Screen-reader-only *until focused*, then shown as a real control. Only the
+   skip link should use this — on anything that can take focus it pops up as a
+   floating box in the corner. */
 .sr-only-focusable {
   position: absolute;
   width: 1px; height: 1px;

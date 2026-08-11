@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { AuthButton } from "@/components/layout/AuthButton";
 
 const LINKS = [
-  { href: "/", label: "Shade match" },
+  { href: "/match", label: "Shade match" },
   { href: "/quiz", label: "Skincare quiz" },
 ];
 

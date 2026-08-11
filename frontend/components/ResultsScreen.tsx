@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Page } from "@/components/ui/Page";
 import { AnimatePresence, motion } from "framer-motion";
-import MonkScaleBar from "./MonkScaleBar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +10,7 @@ import { ProductCard } from "@/components/ui/ProductCard";
 import { ShadeSwatch } from "@/components/ui/ShadeSwatch";
 import { Section } from "@/components/ui/Section";
 import { Tabs } from "@/components/ui/Tabs";
+import { ToneDisc, ToneRibbon } from "@/components/ui/ToneRibbon";
 import { useProductImages } from "@/hooks/useProductImages";
 import { saveToneProfile } from "@/lib/toneProfile";
 import {
@@ -136,40 +136,56 @@ export default function ResultsScreen({
 
   return (
     <Page width="grid">
-      {/* ── Lead with the answer ────────────────────────────────────────── */}
+      {/* ── The measurement is the hero ─────────────────────────────────── */}
       <motion.header
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="mb-10"
+        className="mb-(--space-section)"
       >
-        <p className="text-label uppercase text-accent">Your match</p>
+        <p className="text-label uppercase text-accent">Your measured tone</p>
 
-        <div className="mt-3 flex flex-wrap items-center gap-5">
-          <span
-            className="h-20 w-20 shrink-0 rounded-full border border-line-strong"
-            style={{ backgroundColor: results.avg_hex }}
-            aria-hidden="true"
-          />
+        <div className="mt-5 flex flex-col gap-7 sm:flex-row sm:items-center">
+          {/* The colour we measured, at a size that treats it as the answer
+              rather than as an icon beside the answer. */}
+          <ToneDisc hex={results.avg_hex} size="lg" />
+
           <div className="min-w-0">
-            <h1 className="font-display text-title text-text md:text-display">
-              {topShade ? topShade.shade_name : `Monk tone ${mstLevel}`}
+            <h1 className="font-display text-hero leading-none text-text">
+              {results.undertone}
             </h1>
-            <p className="mt-1 flex flex-wrap items-center gap-2 text-text-soft">
-              <span>Monk scale {mstLevel}</span>
-              <span aria-hidden="true">·</span>
-              <span style={{ color: undertone.hex }}>{results.undertone}</span>
+            <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-text-soft">
+              <span className="text-heading text-text">
+                Monk tone {mstLevel}
+              </span>
               <span aria-hidden="true">·</span>
               <span className="font-mono text-small text-text-muted">
                 {results.avg_hex}
               </span>
+              {topShade && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-small">
+                    closest shade {topShade.shade_name}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>
 
-        <p className="mt-4 max-w-prose text-text-soft">{undertone.description}</p>
+        {/* The ribbon recurs from the welcome page, now carrying the reading. */}
+        <div className="mt-8">
+          <ToneRibbon
+            active={mstLevel}
+            size="md"
+            label={`Monk Skin Tone scale. Your measurement is level ${mstLevel} of 10.`}
+          />
+        </div>
 
-        <div className="mt-5 flex flex-wrap gap-3">
+        <p className="mt-6 max-w-prose text-text-soft">{undertone.description}</p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
           <Button
             variant="secondary"
             size="sm"
@@ -207,10 +223,6 @@ export default function ResultsScreen({
                 classified against the Monk Skin Tone scale, and the undertone
                 came from the balance of red and yellow in the same sample.
               </p>
-
-              <div className="mt-6">
-                <MonkScaleBar highlightLevel={mstLevel} />
-              </div>
 
               {/* Automated results need a manual override — if we call someone
                   MST-6 and they disagree, they must be able to say so. */}
@@ -374,7 +386,7 @@ export default function ResultsScreen({
         description="Name one that matches you and we'll find the equivalent in other brands."
       >
         <div className="flex flex-col gap-2 sm:flex-row">
-          <label htmlFor="foundation-input" className="sr-only-focusable">
+          <label htmlFor="foundation-input" className="sr-only">
             Foundation brand and shade
           </label>
           <input

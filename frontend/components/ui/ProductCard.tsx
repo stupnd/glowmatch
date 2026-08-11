@@ -149,7 +149,7 @@ export function ProductCard({
       </div>
 
       {interactive && (
-        <span className="sr-only-focusable">opens in a new tab</span>
+        <span className="sr-only">opens in a new tab</span>
       )}
     </Wrapper>
   );

@@ -1,162 +1,209 @@
-"use client"
+import Link from "next/link";
+import type { Metadata } from "next";
+import { Page } from "@/components/ui/Page";
+import { ToneRibbon } from "@/components/ui/ToneRibbon";
 
-import { useState, useCallback } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import UploadScreen    from "@/components/UploadScreen"
-import AnalyzingScreen from "@/components/AnalyzingScreen"
-import ResultsScreen   from "@/components/ResultsScreen"
-import LiveAnalyzer    from "@/components/LiveAnalyzer"
-import type { AnalyseMode } from "@/components/UploadScreen"
-import type { AnalyzeResult } from "@/lib/api"
+export const metadata: Metadata = {
+  title: "Tinted — find the shade that actually matches you",
+  description:
+    "Foundation matching that works across the full range of skin tones. Read your depth and undertone from a photo, or take a two-minute skincare quiz.",
+};
 
-// These used to be declared here and imported by the screens, which meant the
-// canonical response shape lived in a page component and listed only five of
-// the ten recommendation categories the API returns. It lives in lib/api now;
-// the re-exports keep existing imports working.
-export type { AnalyzeResult as Results, Product as ShadeRec } from "@/lib/api"
+// Deliberately not a generic three-column feature grid. Each path states what
+// it costs the user and what it gives back, because the real question someone
+// has on this page is "do I have to upload my face?".
+const PATHS = [
+  {
+    href: "/match",
+    eyebrow: "From a photo",
+    title: "Find my shade",
+    time: "about a minute",
+    body: "We read the colour of your skin directly — sampling dozens of small patches, throwing away the ones ruined by shadow or glare, and averaging what's left.",
+    gives: "A shade range, an undertone, and products matched to both.",
+    primary: true,
+  },
+  {
+    href: "/quiz",
+    eyebrow: "No camera needed",
+    title: "Build a routine",
+    time: "seven questions",
+    body: "Answer seven questions about your skin and we'll assemble a routine in application order, with the reason for every step.",
+    gives: "A routine you can actually follow, and what each step is for.",
+    primary: false,
+  },
+];
 
-// ── State machine ─────────────────────────────────────────────────────────────
+const TRUST = [
+  {
+    heading: "Built on the Monk Skin Tone scale",
+    body: "A ten-point scale designed to be more inclusive than the Fitzpatrick scale it replaced. Most shade finders fail on deep and neutral tones; this is the measurement that takes them seriously.",
+  },
+  {
+    heading: "It tells you when it can't be sure",
+    body: "Bad light, motion blur and a turned head all corrupt a colour reading invisibly. Tinted checks before it analyses and says which problem it found, rather than returning a confidently wrong answer.",
+  },
+  {
+    heading: "Your photo isn't stored",
+    body: "It's analysed and discarded. Nothing is uploaded to a profile, and there's no account required to get a result.",
+  },
+];
 
-type AppState = "upload" | "analyzing" | "live-analyzing" | "results"
-
-export default function Home() {
-  const [appState,      setAppState]      = useState<AppState>("upload")
-  const [results,       setResults]       = useState<AnalyzeResult | null>(null)
-  const [qualityErrors, setQualityErrors] = useState<string[] | null>(null)
-  const [liveFile,      setLiveFile]      = useState<File | null>(null)
-  const [liveBudget,    setLiveBudget]    = useState<string>("all")
-
-  const handleUpload = useCallback(async (file: File, budget: string, mode: AnalyseMode = "normal") => {
-    if (mode === "stream") {
-      setLiveFile(file)
-      setLiveBudget(budget)
-      setQualityErrors(null)
-      setAppState("live-analyzing")
-      return
-    }
-    setAppState("analyzing")
-    setQualityErrors(null)
-
-    const fd = new FormData()
-    fd.append("file", file)
-    fd.append("budget", budget)
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      const res    = await fetch(`${apiUrl}/analyze`, { method: "POST", body: fd })
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data: any = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        if (Array.isArray(data.detail)) {
-          // Normalize both formats:
-          //   quality-gate 422  → ["Face is tilted…"]          (strings)
-          //   FastAPI field 422 → [{type,loc,msg,input}]        (objects)
-          const msgs = data.detail.map((item: unknown) =>
-            typeof item === "string"
-              ? item
-              : typeof (item as Record<string, unknown>)?.msg === "string"
-                ? (item as Record<string, unknown>).msg as string
-                : `Analysis failed (${res.status}). Please try again.`
-          )
-          setQualityErrors(msgs)
-        } else {
-          const msg =
-            typeof data.detail === "string"
-              ? data.detail
-              : `Analysis failed (${res.status}). Please try again.`
-          setQualityErrors([msg])
-        }
-        return
-      }
-
-      const mapped: AnalyzeResult = {
-        pixel_count:    data.pixel_count,
-        monk_scale:     data.monk_scale,
-        undertone:      data.undertone,
-        avg_hex:        data.avg_hex,
-        matched_shades: (data.matched_shades ?? []).map(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (s: any) => ({
-            shade_name:     s.shade_name,
-            hex:            s.hex,
-            description:    s.description,
-            recommendation: s.recommendation ?? "",
-            match_score:    typeof s.match_score === "number" ? s.match_score : undefined,
-          }),
-        ),
-        recommendations: data.recommendations ?? {},
-      }
-      setResults(mapped)
-      setAppState("results")
-    } catch {
-      setQualityErrors([
-        "Network error — make sure the server is running and try again.",
-      ])
-    }
-  }, [])
-
-  const handleReset = useCallback(() => {
-    setAppState("upload")
-    setResults(null)
-    setQualityErrors(null)
-    setLiveFile(null)
-  }, [])
-
+export default function WelcomePage() {
   return (
-    <AnimatePresence mode="wait">
-      {appState === "upload" && (
-        <motion.div
-          key="upload"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <UploadScreen onUpload={handleUpload} />
-        </motion.div>
-      )}
+    <Page width="grid">
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="pt-4 md:pt-10">
+        <p className="text-label uppercase text-accent">
+          Foundation matching for every skin tone
+        </p>
+        <h1 className="mt-4 max-w-[14ch] font-display text-hero text-text">
+          Find the shade that actually matches you.
+        </h1>
+        <p className="mt-6 max-w-prose text-text-soft md:text-body">
+          Most shade finders guess from a photo of your face. Tinted measures the
+          colour of your skin, tells you how confident it is, and shows its
+          working.
+        </p>
 
-      {appState === "analyzing" && (
-        <motion.div
-          key="analyzing"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <AnalyzingScreen qualityErrors={qualityErrors} onReset={handleReset} />
-        </motion.div>
-      )}
+        {/* The scale itself as the hero image — the subject of the product,
+            not stock photography. */}
+        <div className="mt-10">
+          <ToneRibbon size="hero" label="The ten-point Monk Skin Tone scale" />
+          <div className="mt-3 flex justify-between text-label uppercase text-text-muted">
+            <span>MST 1</span>
+            <span className="hidden sm:inline">Ten measured tones</span>
+            <span>MST 10</span>
+          </div>
+        </div>
+      </section>
 
-      {appState === "live-analyzing" && liveFile && (
-        <motion.div
-          key="live-analyzing"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <LiveAnalyzer
-            file={liveFile}
-            budget={liveBudget}
-            onComplete={(r) => { setResults(r); setAppState("results") }}
-            onReset={handleReset}
-          />
-        </motion.div>
-      )}
+      {/* ── The two paths ────────────────────────────────────────────────── */}
+      <section
+        aria-labelledby="paths-heading"
+        className="mt-(--space-section) grid gap-4 md:grid-cols-2"
+      >
+        <h2 id="paths-heading" className="sr-only">
+          Choose how to start
+        </h2>
+        {PATHS.map((path) => (
+          <Link
+            key={path.href}
+            href={path.href}
+            className={
+              "group flex flex-col rounded-card border p-6 transition-all " +
+              "duration-(--duration-base) ease-(--ease-out-soft) " +
+              "hover:-translate-y-1 hover:shadow-lift md:p-8 " +
+              (path.primary
+                ? "border-accent/40 bg-accent-dim hover:border-accent"
+                : "border-line bg-surface hover:border-line-strong")
+            }
+          >
+            <p className="text-label uppercase text-accent">{path.eyebrow}</p>
+            <h3 className="mt-2 font-display text-display text-text">
+              {path.title}
+            </h3>
+            <p className="mt-1 text-small text-text-muted">{path.time}</p>
+            <p className="mt-4 flex-1 text-small leading-relaxed text-text-soft">
+              {path.body}
+            </p>
+            <p className="mt-4 border-t border-line pt-4 text-small text-text">
+              {path.gives}
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1.5 text-small font-semibold text-accent transition-transform group-hover:translate-x-0.5">
+              Start
+              <span aria-hidden="true">→</span>
+            </span>
+          </Link>
+        ))}
+      </section>
 
-      {appState === "results" && results && (
-        <motion.div
-          key="results"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+      {/* ── Why trust it ─────────────────────────────────────────────────── */}
+      <section
+        aria-labelledby="trust-heading"
+        className="mt-(--space-section)"
+      >
+        <h2
+          id="trust-heading"
+          className="font-display text-display text-text"
         >
-          <ResultsScreen results={results} onReset={handleReset} />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+          Why the match is worth trusting
+        </h2>
+        <div className="mt-(--space-block) grid gap-6 md:grid-cols-3">
+          {TRUST.map((item, index) => (
+            <div key={item.heading}>
+              {/* Numbered rather than icon-decorated: icons here would be
+                  decoration standing in for content. */}
+              <span
+                className="font-mono text-label text-accent"
+                aria-hidden="true"
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3 className="mt-2 text-heading font-semibold text-text">
+                {item.heading}
+              </h3>
+              <p className="mt-2 text-small leading-relaxed text-text-soft">
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── How it works ─────────────────────────────────────────────────── */}
+      <section aria-labelledby="how-heading" className="mt-(--space-section)">
+        <h2 id="how-heading" className="font-display text-display text-text">
+          What happens to your photo
+        </h2>
+        <ol className="mt-(--space-block) grid gap-px overflow-hidden rounded-card border border-line bg-line md:grid-cols-4">
+          {[
+            ["Detect", "468 facial landmarks locate the skin worth sampling."],
+            ["Check", "Blur, exposure and head angle, before anything is measured."],
+            ["Sample", "Dozens of patches; outliers from shadow and glare discarded."],
+            ["Match", "The average is classified, then matched by perceptual colour distance."],
+          ].map(([step, detail], index) => (
+            <li key={step} className="bg-surface p-5">
+              <span
+                className="font-mono text-label text-text-muted"
+                aria-hidden="true"
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <p className="mt-1.5 font-medium text-text">{step}</p>
+              <p className="mt-1 text-small leading-relaxed text-text-muted">
+                {detail}
+              </p>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-4 text-small text-text-muted">
+          Then it&apos;s discarded. Nothing is stored.
+        </p>
+      </section>
+
+      {/* ── Close ────────────────────────────────────────────────────────── */}
+      <section className="mt-(--space-section) rounded-card border border-line bg-surface p-8 text-center md:p-12">
+        <h2 className="font-display text-display text-text">
+          Ready when you are.
+        </h2>
+        <p className="mx-auto mt-3 max-w-prose text-text-soft">
+          No account, no email, no stored photo.
+        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/match"
+            className="inline-flex min-h-12 items-center rounded-pill bg-accent px-8 font-semibold text-bg transition-colors hover:bg-accent-bright"
+          >
+            Find my shade
+          </Link>
+          <Link
+            href="/quiz"
+            className="inline-flex min-h-12 items-center rounded-pill border border-line-strong px-8 text-text transition-colors hover:border-accent hover:text-accent-bright"
+          >
+            Take the quiz
+          </Link>
+        </div>
+      </section>
+    </Page>
+  );
 }

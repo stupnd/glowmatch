@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import type { Results } from "@/app/page"
+import type { AnalyzeResult as Results } from "@/lib/api"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
