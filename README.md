@@ -26,7 +26,7 @@ photo
   ├─ patch sampling ........ 17 landmark regions, outliers discarded
   ├─ aggregation ........... trimmed mean in Lab space
   ├─ classification ........ Monk Skin Tone level + undertone
-  ├─ shade matching ........ CLIP-backed match over a shade catalogue
+  ├─ shade matching ........ LAB distance over the shade catalogue
   └─ recommendations ....... Claude picks real products per category
 ```
 
@@ -59,15 +59,39 @@ result.
 |---|---|
 | Frontend | Next.js 16, React 19, Tailwind CSS v4, Framer Motion |
 | Backend | FastAPI, Python 3.11 |
-| CV | MediaPipe Face Mesh, OpenCV, PyTorch |
-| Matching | CLIP embeddings + Lab colour distance |
+| CV | MediaPipe Face Mesh, OpenCV |
+| Classification | LAB nearest neighbour against the ten Monk reference values |
+| Matching | LAB colour distance over the shade catalogue |
 | AI | Claude (Haiku 4.5) for product recommendations |
 | Auth | Supabase |
 | Deploy | Vercel (web) + Render (API) |
 
+No neural network runs at request time, and the table says so deliberately —
+an earlier version claimed PyTorch and CLIP. `ml/train.py` trains a classifier
+offline and `ml/monk_classifier.pt` is committed, but nothing loads it; a CLIP
+matcher existed and was imported by nothing, with `clip` neither installed nor
+in `requirements.txt`, so it always fell through to the LAB path. The CLIP
+module is gone, and torch moved to `requirements-train.txt` — it was adding
+~543MB to every deploy for code that never ran.
+
+Classification is ~15 lines of nearest neighbour. That is a defensible choice
+and [the evaluation](docs/classifier-evaluation.md) says where it holds and
+where it does not, which is more than the previous claim could.
+
 ---
 
 ## Running it locally
+
+```bash
+./scripts/dev.sh          # both halves, with preflight checks
+```
+
+The script refuses to start against a venv older than Python 3.10 and warns if
+`ANTHROPIC_API_KEY` is missing. Both failures are otherwise silent: the web app
+loads fine, the quiz just says it couldn't load and recommendations come back
+empty, with nothing pointing at the backend.
+
+First-time setup below.
 
 ### Backend
 
@@ -75,7 +99,7 @@ result.
 cd backend
 python3.11 -m venv .venv          # 3.11 — routes.py uses PEP 604 unions
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt   # runtime only; -r requirements-dev.txt for tests
 cp .env.example .env              # add ANTHROPIC_API_KEY
 uvicorn main:app --reload --port 8000
 ```
@@ -92,11 +116,36 @@ npm run dev
 ### Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 72 tests
+cd backend && python -m pytest tests/ -q     # 146 tests
 ```
 
-There is also an offline accuracy harness in `backend/eval/` that scores the
-classifier against a labelled test set — see `backend/eval/README.md`.
+---
+
+## Evaluation
+
+[**docs/classifier-evaluation.md**](docs/classifier-evaluation.md) — where the
+classifier is fragile, measured rather than asserted.
+
+The short version: the Monk reference values are not evenly spaced. MST 1 and 2
+sit 5.48 apart in LAB, giving a safe radius of 2.74, while MST 6 and 7 get
+14.57. Under isotropic noise at sigma 5, MST-2 is a coin flip while MST 6–8 are
+still perfect, and every illuminant-induced misclassification is confined to
+MST 1–4.
+
+That result alone would mislead, so the write-up also models photon shot noise:
+darker skin reflects fewer photons, and scaling sigma by 1/sqrt(L) drops MST
+9–10 to 0.69–0.75. **Both ends of the scale are fragile, for opposite reasons** —
+crowded references at the light end, noisier measurement at the deep end.
+
+```bash
+cd backend && python eval/classifier_eval.py
+```
+
+This characterises one stage. End-to-end accuracy from a photograph is
+**unmeasured**: `eval/run_eval.py` is built and refuses to report a number
+while the test set is placeholder images, because a fake accuracy figure is
+worse than an absent one. `backend/eval/README.md` documents collecting real
+labelled samples.
 
 ---
 
@@ -151,7 +200,7 @@ tinted/
 │   ├── quality_gate.py pre-analysis input checks
 │   └── skincare_quiz.py  question set + weighted tag scoring
 ├── frontend/
-│   ├── app/            routes: /, /quiz, /profile, /lip-combo
+│   ├── app/            routes: /, /quiz, /profile
 │   ├── components/ui/  design-system primitives
 │   └── lib/api.ts      typed API client
 └── docs/

@@ -83,6 +83,13 @@
   --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
                  0 16px 40px -20px rgba(198, 134, 66, 0.45);
 
+  /* ── Rhythm ───────────────────────────────────────────────────────────── */
+  /* One vertical scale, so sections don't each invent their own spacing.
+     Gaps within a section come from the block scale; gaps between sections
+     from --space-section. */
+  --space-section: 4rem;
+  --space-block: 1.5rem;
+
   /* ── Motion ───────────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 140ms;
@@ -151,6 +158,31 @@ body {
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-pill);
   z-index: 200;
+}
+
+/* A horizontally scrolling strip shouldn't show a scrollbar over its own
+   rounded edge — the tab rail relies on this. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Line clamping. Product blurbs vary in length, which left a grid of cards
+   with ragged bottom edges — the clamp is what makes a row read as a row. */
+.clamp-1, .clamp-2, .clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+
+/* Signals that a horizontally scrolling rail continues past the edge, instead
+   of letting content look arbitrarily cut off. */
+.fade-edges {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem,
+                       #000 calc(100% - 1.25rem), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 1.25rem,
+               #000 calc(100% - 1.25rem), transparent 100%);
 }
 
 /* Checkerboard behind cut-out product photos, so a transparent PNG doesn't

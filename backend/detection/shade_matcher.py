@@ -18,8 +18,7 @@ import json
 import logging
 from pathlib import Path
 
-import cv2
-import numpy as np
+from color_science import delta_e_2000, describe_delta_e, hex_to_lab
 
 logger = logging.getLogger(__name__)
 
@@ -39,15 +38,15 @@ def match_shades(
     hex_color: str = "#808080",
     n: int = 3,
 ) -> list[dict]:
-    """Return top-*n* shades ranked by LAB colour distance to the measured skin hex.
+    """Return top-*n* shades ranked by perceptual colour difference to the skin hex.
 
     Foundation should match the skin it sits on, so the ranking metric is
-    ΔE (Euclidean distance in OpenCV LAB) between the user's measured hex and
-    each shade's swatch hex, plus an undertone-compatibility penalty.  Falls
-    back to the MST-range heuristic when the hex cannot be parsed.
+    CIEDE2000 between the user's measured hex and each shade's swatch hex, plus
+    an undertone-compatibility penalty. Falls back to the MST-range heuristic
+    when the hex cannot be parsed.
 
-    Each dict contains shade_name, hex, description, recommendation, and
-    match_score (0–1, higher is closer).
+    Each dict contains shade_name, hex, description, recommendation,
+    match_score (0–1, higher is closer), delta_e, and closeness.
     """
     try:
         return _match_shades_lab(undertone, hex_color, n)
@@ -57,27 +56,33 @@ def match_shades(
 
 
 # Penalties added to ΔE when the shade's undertone doesn't match the user's.
-# Opposite undertone (warm vs cool) is a visible mismatch; neutral shades sit
-# acceptably on any undertone, so the penalty is mild.
-_OPPOSITE_UNDERTONE_PENALTY = 12.0
-_NEUTRAL_UNDERTONE_PENALTY  = 4.0
+#
+# Recalibrated for CIEDE2000. The previous values (12.0 / 4.0) were tuned
+# against Euclidean distance in OpenCV's uint8 LAB, where lightness is stretched
+# 2.55x and the numbers run far larger. Measured against this catalogue, the
+# nearest shade to a real skin tone sits at ΔE 4.4-11.2, so a penalty of 12
+# would have outweighed essentially every genuine colour difference — undertone
+# would have silently overridden depth.
+#
+# 3.0 is deliberately comparable to the spread between the 1st and 3rd nearest
+# shades (0.5-3.0): enough to reorder near-ties on undertone, not enough to
+# promote a visibly wrong depth.
+_OPPOSITE_UNDERTONE_PENALTY = 3.0
+_NEUTRAL_UNDERTONE_PENALTY  = 1.0
 
-
-def _hex_to_lab(hex_color: str) -> tuple[float, float, float]:
-    h = hex_color.lstrip("#")
-    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
-    pixel = np.array([[[b, g, r]]], dtype=np.uint8)
-    L, a, b_val = cv2.cvtColor(pixel, cv2.COLOR_BGR2LAB)[0, 0]
-    return (float(L), float(a), float(b_val))
+# match_score halves every 10 ΔE. Chosen so the number degrades on a scale a
+# person can reason about rather than an arbitrary one: ΔE 2.3 is the
+# just-noticeable difference, 10 is "clearly a different colour".
+_SCORE_HALF_LIFE = 10.0
 
 
 def _match_shades_lab(undertone: str, hex_color: str, n: int) -> list[dict]:
-    skin_lab = _hex_to_lab(hex_color)
+    skin_lab = hex_to_lab(hex_color)
 
     ranked: list[tuple[float, float, dict]] = []
     for shade in load_shades():
-        shade_lab = _hex_to_lab(shade["hex"])
-        delta_e = sum((skin_lab[i] - shade_lab[i]) ** 2 for i in range(3)) ** 0.5
+        shade_lab = hex_to_lab(shade["hex"])
+        delta_e = delta_e_2000(skin_lab, shade_lab)
 
         if shade["undertone"] == undertone:
             penalty = 0.0
@@ -112,7 +117,11 @@ def _match_shades_lab(undertone: str, hex_color: str, n: int) -> list[dict]:
             "hex":            shade["hex"],
             "description":    shade["description"],
             "recommendation": why,
-            "match_score":    round(1.0 / (1.0 + score / 25.0), 4),
+            "match_score":    round(0.5 ** (delta_e / _SCORE_HALF_LIFE), 4),
+            # Surfaced so the UI can say "ΔE 4.4 — close" instead of an opaque
+            # percentage. This is a real, checkable perceptual quantity.
+            "delta_e":        round(delta_e, 2),
+            "closeness":      describe_delta_e(delta_e),
         })
     return results
 
