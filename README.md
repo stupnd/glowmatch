@@ -197,12 +197,19 @@ a single-instance deploy and documented as needing Redis if that ever changes.
 
 ## Design
 
-The interface is deliberately near-neutral dark. This app's job is to show
-colour accurately, and a tinted background shifts perceived skin tone — a warm
-page makes every swatch read warmer, which corrupts the exact judgement the
-product exists to make. The only saturated colour on screen belongs to the
-shades and the product photos. The accent is bronze rather than pink for the
-same reason: it sits beside every skin tone without competing with it.
+Warm cream ground, near-black serif, coral accent — the visual language of
+beauty editorial rather than of a dashboard.
+
+The colour-accuracy constraint is still respected, but scoped correctly: it
+applies to the *swatch surface*, not the whole interface. Anything whose colour
+is being judged — shade chips, product photography — sits on plain white
+(`--color-swatch-ground`) so nothing tints the assessment. The cream is chrome
+around those surfaces, never behind them.
+
+The Monk scale itself is the visual signature (`ToneRibbon`), recurring across
+the welcome page, the analysing state and results. Most products in this space
+decorate with stock beauty photography, which is why they look alike; here the
+decoration is the data — those are the exact values the classifier targets.
 
 Every text/surface pair is verified at WCAG AA for body text, with the measured
 ratios recorded in `frontend/app/globals.css` so they can be re-checked.

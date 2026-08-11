@@ -72,6 +72,10 @@ export default function CameraModal({ onCapture, onClose }: Props) {
       onClick={onClose}
     >
       <motion.div
+        // Deliberately dark against the app's cream ground: a camera preview
+        // needs a neutral dark surround, and white-alpha chrome only reads here.
+        // This is also why the link below uses accent-vivid — the darker coral
+        // is 3.25 on #111 and fails.
         className="relative w-[min(92vw,460px)] bg-[#111] rounded-2xl overflow-hidden ring-1 ring-white/[0.08]"
         initial={{ scale: 0.94, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -108,7 +112,7 @@ export default function CameraModal({ onCapture, onClose }: Props) {
             <p className="text-white/50 text-sm leading-relaxed">{error}</p>
             <button
               onClick={onClose}
-              className="inline-flex min-h-11 items-center text-small text-accent underline underline-offset-2 hover:text-accent-bright"
+              className="inline-flex min-h-11 items-center text-small text-accent-vivid underline underline-offset-2 hover:text-white"
             >
               use file upload instead
             </button>
@@ -151,7 +155,7 @@ export default function CameraModal({ onCapture, onClose }: Props) {
                     rx="44"
                     ry="58"
                     fill="none"
-                    stroke="#c68642"
+                    stroke="#D9541F"
                     strokeWidth="1.5"
                     strokeDasharray="5 3"
                   />
@@ -167,10 +171,10 @@ export default function CameraModal({ onCapture, onClose }: Props) {
             <div className="flex justify-center py-5 bg-[#0a0a0a]">
               <button
                 onClick={capture}
-                className="w-16 h-16 rounded-full flex items-center justify-center border-4 border-[#c68642] bg-black active:scale-95 transition-transform"
+                className="w-16 h-16 rounded-full flex items-center justify-center border-4 border-[#D9541F] bg-black active:scale-95 transition-transform"
                 aria-label="Capture photo"
               >
-                <div className="w-11 h-11 rounded-full bg-[#c68642]" />
+                <div className="w-11 h-11 rounded-full bg-[#D9541F]" />
               </button>
             </div>
           </>

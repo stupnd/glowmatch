@@ -1,51 +1,61 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Tinted design system
+   Tinted design system — warm editorial
 
-   Why a near-neutral dark canvas:
-   this app's entire job is to show colour accurately. A tinted background
-   shifts perceived skin tone — a warm page makes every swatch read warmer, and
-   the undertone call is the product. So the surfaces are deliberately close to
-   neutral grey (a hint cool, to counter the warmth of the accent), and the only
-   saturated colour on screen belongs to the shades and the product photos.
+   Cream ground, near-black serif, coral accent. The previous dark bronze
+   palette was read as "a developer tool", which was fair: dark surface plus a
+   tan accent is the visual language of an IDE, not a beauty product.
 
-   Every text/surface pair below is verified at WCAG AA (4.5:1) for body text.
-   Measured against --color-bg / --color-surface / --color-raised respectively:
-     text        17.90 / 16.74 / 15.47
-     text-soft    9.20 /  8.60 /  7.95
-     text-muted   5.49 /  5.13 /  4.74
-     accent       6.45 /  6.04 /  5.58
-   If you change a value here, re-check it before committing.
+   The colour-accuracy argument still holds, but it applies to *the swatch
+   surface*, not the whole app. Shades and product photos are shown on plain
+   white (--color-swatch-ground) so nothing tints the judgement; the warm cream
+   is chrome around them, never behind a colour being assessed.
+
+   Contrast is measured, not guessed. Worst case per token against
+   cream / white / blush:
+     text          17.27 / 18.35 / 15.92
+     text-soft      7.88 /  8.37 /  7.27
+     text-muted     4.90 /  5.20 /  4.51
+     accent-text    5.47 /  5.81 /  5.04
+   White on the button fill (--color-accent) is 5.81. The brighter coral
+   (--color-accent-vivid) is 3.77 and is therefore LARGE TEXT AND FILLS ONLY —
+   never small type.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
-  --color-bg: #0b0b0c;
-  --color-surface: #141416;
-  --color-raised: #1c1c1f;
-  --color-overlay: rgba(6, 6, 7, 0.72);
+  --color-bg: #fdf7f2;
+  --color-surface: #ffffff;
+  --color-raised: #f8ede4;
+  --color-overlay: rgba(38, 24, 18, 0.45);
+  /* Neutral ground for anything whose colour is being judged. */
+  --color-swatch-ground: #ffffff;
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text: #f5f4f2;
-  --color-text-soft: #b4b1ab;
-  --color-text-muted: #8a8780;
+  --color-text: #1a1310;
+  --color-text-soft: #5c4a40;
+  --color-text-muted: #7d6959;
 
   /* ── Accent ───────────────────────────────────────────────────────────── */
-  /* Bronze rather than pink: it sits beside every skin tone without competing
-     with it, which a saturated pink does not. */
-  --color-accent: #c68642;
-  --color-accent-bright: #e0a063;
-  --color-accent-dim: rgba(198, 134, 66, 0.14);
+  /* accent = fills and small text (white on it passes AA).
+     accent-vivid = display type and decoration only. */
+  --color-accent: #b23f13;
+  --color-accent-vivid: #d9541f;
+  /* Hover on a filled button darkens rather than brightens — white on this is
+     7.57, so the label stays readable through the transition. */
+  --color-accent-hover: #96330c;
+  --color-accent-dim: rgba(217, 84, 31, 0.1);
+  --color-rose: #a8395e;
 
   /* ── Status ───────────────────────────────────────────────────────────── */
-  --color-success: #6fbf8b;
-  --color-warn: #e8b04b;
-  --color-danger: #f0796b;
+  --color-success: #1f6b4a;
+  --color-warn: #7a5408;
+  --color-danger: #b3261e;
 
   /* ── Lines ────────────────────────────────────────────────────────────── */
-  --color-line: rgba(255, 255, 255, 0.09);
-  --color-line-strong: rgba(255, 255, 255, 0.16);
+  --color-line: #ecdfd4;
+  --color-line-strong: #dcc8b8;
 
   /* ── Type ─────────────────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
@@ -82,13 +92,14 @@
   --radius-pill: 999px;
 
   /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Dark UIs get depth from a light top edge, not from a heavier drop shadow. */
-  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-                 0 12px 32px -16px rgba(0, 0, 0, 0.9);
-  --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
-                 0 24px 48px -20px rgba(0, 0, 0, 0.95);
-  --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
-                 0 16px 40px -20px rgba(198, 134, 66, 0.45);
+  /* Light UIs get depth from soft, warm-tinted drop shadows. The previous
+     inset top-highlight only reads on a dark surface. */
+  --shadow-card: 0 1px 2px rgba(90, 55, 35, 0.05),
+                 0 8px 24px -12px rgba(90, 55, 35, 0.14);
+  --shadow-lift: 0 2px 6px rgba(90, 55, 35, 0.07),
+                 0 24px 48px -18px rgba(90, 55, 35, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(217, 84, 31, 0.28),
+                 0 18px 40px -20px rgba(217, 84, 31, 0.35);
 
   /* ── Rhythm ───────────────────────────────────────────────────────────── */
   /* One vertical scale, so sections don't each invent their own spacing.
@@ -121,24 +132,24 @@ body {
 /* Visible, consistent focus. Never remove this without replacing it — keyboard
    users have no other way to tell where they are. */
 :focus-visible {
-  outline: 2px solid var(--color-accent-bright);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
 ::selection {
-  background: rgba(198, 134, 66, 0.3);
+  background: rgba(217, 84, 31, 0.2);
   color: var(--color-text);
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-line-strong);
   border: 3px solid var(--color-bg);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+::-webkit-scrollbar-thumb:hover { background: #c9b2a0; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Utilities
@@ -209,10 +220,10 @@ body {
    vanish into the page. */
 .bg-swatch-check {
   background-image:
-    linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%);
+    linear-gradient(45deg, rgba(90,55,35,0.05) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(90,55,35,0.05) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(90,55,35,0.05) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(90,55,35,0.05) 75%);
   background-size: 12px 12px;
   background-position: 0 0, 0 6px, 6px -6px, -6px 0;
 }
@@ -257,4 +268,36 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Editorial touches
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Slight rotation on alternating cards, straightening on hover. Cheap, and it
+   is most of what separates an editorial layout from a dashboard grid. */
+.tilt-a { transform: rotate(-1.4deg); }
+.tilt-b { transform: rotate(1.1deg); }
+.tilt-a, .tilt-b { transition: transform var(--duration-base) var(--ease-out-soft); }
+.tilt-a:hover, .tilt-b:hover { transform: rotate(0deg) translateY(-4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-a, .tilt-b { transform: none; }
+  .tilt-a:hover, .tilt-b:hover { transform: none; }
+}
+
+/* Warm bloom behind hero sections, so the cream ground is not flat. */
+.hero-wash {
+  position: relative;
+}
+.hero-wash::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 70%;
+  background:
+    radial-gradient(60% 60% at 20% 30%, rgba(217, 84, 31, 0.09), transparent 70%),
+    radial-gradient(50% 50% at 80% 20%, rgba(168, 57, 94, 0.07), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }

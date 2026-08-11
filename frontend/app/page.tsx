@@ -52,7 +52,7 @@ export default function WelcomePage() {
   return (
     <Page width="grid">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="pt-4 md:pt-10">
+      <section className="hero-wash pt-4 md:pt-10">
         <p className="text-label uppercase text-accent">
           Foundation matching for every skin tone
         </p>
@@ -192,13 +192,13 @@ export default function WelcomePage() {
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/match"
-            className="inline-flex min-h-12 items-center rounded-pill bg-accent px-8 font-semibold text-bg transition-colors hover:bg-accent-bright"
+            className="inline-flex min-h-12 items-center rounded-pill bg-accent px-8 font-semibold text-white transition-colors hover:bg-accent-hover"
           >
             Find my shade
           </Link>
           <Link
             href="/quiz"
-            className="inline-flex min-h-12 items-center rounded-pill border border-line-strong px-8 text-text transition-colors hover:border-accent hover:text-accent-bright"
+            className="inline-flex min-h-12 items-center rounded-pill border border-line-strong px-8 text-text transition-colors hover:border-accent hover:text-accent"
           >
             Take the quiz
           </Link>

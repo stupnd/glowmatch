@@ -38,13 +38,13 @@ function undertoneTone(undertone: string): {
   const value = undertone.toLowerCase();
   if (value.includes("warm"))
     return {
-      hex: "#c68642",
+      hex: "#9A5B18",
       description:
         "Golden and peach tones sit closest to your skin; silver jewellery can read cold against it.",
     };
   if (value.includes("cool"))
     return {
-      hex: "#7ea8c4",
+      hex: "#2F6E90",
       description:
         "Pink and blue-based tones suit you; yellow-heavy foundations tend to look sallow.",
     };
@@ -251,7 +251,7 @@ export default function ResultsScreen({
                         className={
                           "min-h-11 min-w-11 rounded-card border text-small tabular-nums transition-colors " +
                           (active
-                            ? "border-accent bg-accent-dim text-accent-bright"
+                            ? "border-accent bg-accent-dim text-accent"
                             : "border-line text-text-soft hover:border-line-strong hover:text-text")
                         }
                       >
@@ -350,9 +350,10 @@ export default function ResultsScreen({
                 transition={{ duration: 0.18 }}
                 className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
               >
-                {picks.map((product) => (
+                {picks.map((product, index) => (
                   <ProductCard
                     key={`${product.brand}-${product.product}`}
+                    index={index}
                     product={{
                       ...product,
                       // Absent key = not resolved yet, so the card shimmers.

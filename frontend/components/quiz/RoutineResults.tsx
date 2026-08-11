@@ -97,7 +97,7 @@ export function RoutineResults({
                 <span
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                    "border border-line-strong bg-raised font-display text-small text-accent-bright",
+                    "border border-line-strong bg-raised font-display text-small text-accent",
                   )}
                   aria-hidden="true"
                 >
@@ -118,7 +118,7 @@ export function RoutineResults({
                         {item.brand} {item.product}
                       </p>
                       {item.key_ingredient && (
-                        <p className="mt-0.5 text-small text-accent-bright">
+                        <p className="mt-0.5 text-small text-accent">
                           {item.key_ingredient}
                         </p>
                       )}
@@ -132,7 +132,7 @@ export function RoutineResults({
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-2 inline-flex min-h-11 items-center gap-1 text-small font-medium text-accent hover:text-accent-bright"
+                          className="mt-2 inline-flex min-h-11 items-center gap-1 text-small font-medium text-accent hover:text-accent"
                         >
                           Shop this
                           <span aria-hidden="true">→</span>

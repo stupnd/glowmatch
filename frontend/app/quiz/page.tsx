@@ -258,7 +258,7 @@ export default function QuizPage() {
                 className={
                   "min-h-11 rounded-pill border px-4 text-small transition-colors " +
                   (budget === option.value
-                    ? "border-accent bg-accent-dim text-accent-bright"
+                    ? "border-accent bg-accent-dim text-accent"
                     : "border-line text-text-soft hover:border-line-strong hover:text-text")
                 }
               >

@@ -49,7 +49,7 @@ export function Navbar({ className }: { className?: string }) {
                     "inline-flex min-h-11 items-center whitespace-nowrap rounded-pill px-3",
                     "text-small font-medium transition-colors duration-(--duration-fast)",
                     active
-                      ? "bg-accent-dim text-accent-bright"
+                      ? "bg-accent-dim text-accent"
                       : "text-text-soft hover:bg-raised hover:text-text",
                   )}
                 >

@@ -32,9 +32,12 @@ export interface Product {
  */
 export function ProductCard({
   product,
+  /** Index in the grid — drives the alternating tilt. */
+  index = 0,
   className,
 }: {
   product: Product;
+  index?: number;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -57,7 +60,11 @@ export function ProductCard({
       {...wrapperProps}
       className={cn(
         "group flex h-full flex-col overflow-hidden rounded-card",
-        "border border-line bg-surface",
+        "border border-line bg-surface shadow-card",
+        // Alternating tilt is most of what separates an editorial layout from
+        // a dashboard grid. Straightens on hover; disabled under
+        // prefers-reduced-motion.
+        index % 2 === 0 ? "tilt-a" : "tilt-b",
         interactive && [
           "transition-all duration-(--duration-base) ease-(--ease-out-soft)",
           "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift",
@@ -67,7 +74,7 @@ export function ProductCard({
     >
       {/* 4:5 rather than square: it fits more of a grid on screen at once, and
           most product photography is portrait anyway. */}
-      <div className="relative aspect-4/5 overflow-hidden bg-raised">
+      <div className="relative aspect-4/5 overflow-hidden bg-swatch-ground">
         {showImage ? (
           // Plain <img>: sources are arbitrary third-party hosts from an image
           // search, which next/image can't optimise without allow-listing every
@@ -85,7 +92,7 @@ export function ProductCard({
           />
         ) : imageLoading ? (
           <div className="absolute inset-0 overflow-hidden">
-            <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/12 to-transparent" />
+            <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-black/5 to-transparent" />
           </div>
         ) : (
           <div
@@ -159,8 +166,8 @@ export function ProductCard({
 export function ProductCardSkeleton() {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface">
-      <div className="relative aspect-4/5 overflow-hidden bg-raised">
-        <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/12 to-transparent" />
+      <div className="relative aspect-4/5 overflow-hidden bg-swatch-ground">
+        <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-black/5 to-transparent" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3.5">
         <div className="h-2.5 w-1/3 rounded-pill bg-raised" />
