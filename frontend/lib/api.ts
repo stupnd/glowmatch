@@ -224,3 +224,19 @@ export function fetchLipPalette(
   });
   return request(`/lip-palette?${params}`);
 }
+
+// ── Product lookup (inventory search) ─────────────────────────────────────────
+
+export type ProductMatch = {
+  brand: string;
+  product: string;
+  category: string | null;
+  shade: string | null;
+  hex: string | null;
+  /** Typical retail price in cents. An estimate, not live pricing. */
+  price_cents: number | null;
+};
+
+export function lookupProducts(query: string): Promise<{ results: ProductMatch[] }> {
+  return postJson("/product-lookup", { query });
+}

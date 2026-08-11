@@ -9,22 +9,16 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { SignInGate } from "@/components/vanity/SignInGate";
 import { InventoryGrid } from "@/components/vanity/InventoryGrid";
+import { AddProduct } from "@/components/vanity/AddProduct";
 import {
-  addInventoryItem,
   deleteInventoryItem,
   formatCents,
   listInventory,
   listRoutines,
-  parsePriceToCents,
   totalCents,
   type InventoryItem,
   type Routine,
 } from "@/lib/vanity";
-
-const CATEGORIES = [
-  "foundation", "concealer", "blush", "bronzer", "highlighter",
-  "lip", "eyeshadow", "setting powder", "mascara", "brow",
-];
 
 export default function VanityPage() {
   return (
@@ -149,7 +143,7 @@ function VanityContent() {
         }
       >
         {adding && user && (
-          <AddItemForm
+          <AddProduct
             userId={user.id}
             onAdded={(item) => {
               setItems((prev) => [item, ...prev]);
@@ -245,148 +239,5 @@ function VanityContent() {
         )}
       </Section>
     </>
-  );
-}
-
-// ── Add form ──────────────────────────────────────────────────────────────────
-
-function AddItemForm({
-  userId,
-  onAdded,
-}: {
-  userId: string;
-  onAdded: (item: InventoryItem) => void;
-}) {
-  const [brand, setBrand] = useState("");
-  const [product, setProduct] = useState("");
-  const [shade, setShade] = useState("");
-  const [category, setCategory] = useState("");
-  const [hex, setHex] = useState("#c89a6b");
-  const [price, setPrice] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!brand.trim() || !product.trim()) {
-      setProblem("Brand and product are both needed.");
-      return;
-    }
-    setSaving(true);
-    setProblem(null);
-    try {
-      const created = await addInventoryItem(
-        {
-          brand: brand.trim(),
-          product: product.trim(),
-          shade: shade.trim() || null,
-          category: category || null,
-          hex,
-          url: null,
-          price_cents: parsePriceToCents(price),
-          notes: null,
-        },
-        userId,
-      );
-      onAdded(created);
-    } catch {
-      setProblem("Couldn't save that. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const field =
-    "min-h-12 w-full rounded-card border border-line bg-surface px-4 text-text placeholder:text-text-muted focus:border-accent focus:outline-none";
-
-  return (
-    <form
-      onSubmit={submit}
-      className="mb-5 rounded-card border border-line bg-raised p-5"
-    >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Brand</span>
-          <input
-            className={`mt-1 ${field}`}
-            value={brand}
-            onChange={(e) => setBrand(e.target.value)}
-            placeholder="NARS"
-            autoFocus
-          />
-        </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Product</span>
-          <input
-            className={`mt-1 ${field}`}
-            value={product}
-            onChange={(e) => setProduct(e.target.value)}
-            placeholder="Sheer Glow Foundation"
-          />
-        </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Shade</span>
-          <input
-            className={`mt-1 ${field}`}
-            value={shade}
-            onChange={(e) => setShade(e.target.value)}
-            placeholder="Deauville"
-          />
-        </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Category</span>
-          <select
-            className={`mt-1 ${field}`}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">—</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Price</span>
-          <input
-            className={`mt-1 ${field}`}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="42.00"
-            inputMode="decimal"
-          />
-        </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">
-            Shade colour
-          </span>
-          <div className="mt-1 flex items-center gap-3">
-            <input
-              type="color"
-              value={hex}
-              onChange={(e) => setHex(e.target.value)}
-              className="h-12 w-16 cursor-pointer rounded-card border border-line bg-surface"
-              aria-label="Shade colour"
-            />
-            <span className="font-mono text-small text-text-muted">{hex}</span>
-          </div>
-        </label>
-      </div>
-
-      {problem && (
-        <p className="mt-3 text-small text-danger" role="alert">
-          {problem}
-        </p>
-      )}
-
-      <div className="mt-4 flex items-center gap-3">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : "Add to shelf"}
-        </Button>
-        <span className="text-small text-text-muted">
-          Only brand and product are required.
-        </span>
-      </div>
-    </form>
   );
 }
