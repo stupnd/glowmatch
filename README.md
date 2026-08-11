@@ -149,6 +149,30 @@ labelled samples.
 
 ---
 
+## Deploying
+
+**Backend — Render.** `render.yaml` is a Blueprint: New → Blueprint → point at
+this repo. It builds `backend/Dockerfile` and health-checks `/health`.
+
+Docker rather than Render's native Python runtime because MediaPipe depends on
+`opencv-contrib-python` — the non-headless build — which needs `libGL` and
+`glib` at import time. Pinning `opencv-python-headless` does not help: MediaPipe
+pulls contrib in regardless, so the system libraries have to exist, and native
+runtimes give no way to install them.
+
+Two env vars are prompted for on first deploy and are not in the repo:
+
+| Variable | Notes |
+|---|---|
+| `ANTHROPIC_API_KEY` | Without it, shade matching works but recommendations are empty |
+| `ALLOWED_ORIGINS` | **Must** be your Vercel origin. Unset means dev mode — the API accepts any localhost origin and refuses the deployed site |
+
+**Frontend — Vercel.** Set `NEXT_PUBLIC_API_URL` to the Render URL. Unset, it
+falls back to `http://localhost:8000`, so every visitor's browser calls *their
+own machine* and the site appears broken while the build reports success.
+
+---
+
 ## API
 
 | Method | Route | Purpose |
