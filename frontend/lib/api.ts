@@ -119,6 +119,10 @@ export type MatchedShade = {
   description: string;
   recommendation?: string;
   match_score?: number;
+  /** CIEDE2000 to the measured skin tone. ~2.3 is the just-noticeable difference. */
+  delta_e?: number;
+  /** Plain-language reading of delta_e, from the backend. */
+  closeness?: string;
 };
 
 export type AnalyzeResult = {

@@ -32,15 +32,17 @@ export interface Product {
  */
 export function ProductCard({
   product,
-  imageLoading = false,
   className,
 }: {
   product: Product;
-  imageLoading?: boolean;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
   const showImage = Boolean(product.imageUrl) && !failed;
+  // Loading is per-card, not per-batch. A single batch flag meant all 27 cards
+  // shimmered until the slowest lookup finished, which read as an empty grid.
+  // undefined = not resolved yet; null = resolved to no photo.
+  const imageLoading = product.imageUrl === undefined && !failed;
   const hasShade = Boolean(product.shade && product.shade !== "N/A");
   const monogram = (product.brand || product.product).charAt(0).toUpperCase();
 
@@ -57,7 +59,7 @@ export function ProductCard({
         "group flex h-full flex-col overflow-hidden rounded-card",
         "border border-line bg-surface",
         interactive && [
-          "transition-all duration-[--duration-base] ease-[--ease-out-soft]",
+          "transition-all duration-(--duration-base) ease-(--ease-out-soft)",
           "hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift",
         ],
         className,
@@ -79,11 +81,11 @@ export function ProductCard({
             loading="lazy"
             decoding="async"
             onError={() => setFailed(true)}
-            className="h-full w-full object-cover transition-transform duration-[--duration-slow] ease-[--ease-out-soft] group-hover:scale-[1.03]"
+            className="h-full w-full object-cover transition-transform duration-(--duration-slow) ease-(--ease-out-soft) group-hover:scale-[1.03]"
           />
         ) : imageLoading ? (
           <div className="absolute inset-0 overflow-hidden">
-            <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/6 to-transparent" />
+            <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/12 to-transparent" />
           </div>
         ) : (
           <div
@@ -158,7 +160,7 @@ export function ProductCardSkeleton() {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface">
       <div className="relative aspect-4/5 overflow-hidden bg-raised">
-        <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/6 to-transparent" />
+        <div className="animate-shimmer-sweep absolute inset-y-0 w-1/3 bg-linear-to-r from-transparent via-white/12 to-transparent" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3.5">
         <div className="h-2.5 w-1/3 rounded-pill bg-raised" />

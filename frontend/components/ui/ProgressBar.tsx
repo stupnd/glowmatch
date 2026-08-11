@@ -39,7 +39,7 @@ export function ProgressBar({
         aria-label="Quiz progress"
       >
         <div
-          className="h-full rounded-pill bg-accent transition-[width] duration-[--duration-base] ease-[--ease-out-soft]"
+          className="h-full rounded-pill bg-accent transition-[width] duration-(--duration-base) ease-(--ease-out-soft)"
           style={{ width: `${percent}%` }}
         />
       </div>

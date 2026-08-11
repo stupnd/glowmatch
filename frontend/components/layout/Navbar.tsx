@@ -47,7 +47,7 @@ export function Navbar({ className }: { className?: string }) {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex min-h-11 items-center whitespace-nowrap rounded-pill px-3",
-                    "text-small font-medium transition-colors duration-[--duration-fast]",
+                    "text-small font-medium transition-colors duration-(--duration-fast)",
                     active
                       ? "bg-accent-dim text-accent-bright"
                       : "text-text-soft hover:bg-raised hover:text-text",

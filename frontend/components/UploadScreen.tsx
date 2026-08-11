@@ -109,7 +109,7 @@ export default function UploadScreen({
             onDrop={handleDrop}
             className={cn(
               "flex w-full flex-col items-center gap-4 rounded-card border border-dashed p-10",
-              "transition-colors duration-[--duration-fast]",
+              "transition-colors duration-(--duration-fast)",
               isDragging
                 ? "border-accent bg-accent-dim"
                 : "border-line-strong bg-surface hover:border-accent hover:bg-raised",

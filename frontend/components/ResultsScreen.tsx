@@ -93,7 +93,7 @@ export default function ResultsScreen({
       ),
     [results.recommendations],
   );
-  const { images, loading: imagesLoading } = useProductImages(allProducts);
+  const { images } = useProductImages(allProducts);
 
   const tabs = useMemo(
     () =>
@@ -285,9 +285,22 @@ export default function ResultsScreen({
                   name={shade.shade_name}
                   detail={shade.description}
                 />
-                {typeof shade.match_score === "number" && (
-                  <p className="mt-3 text-label uppercase text-text-muted">
-                    {Math.round(shade.match_score * 100)}% match
+                {shade.closeness && (
+                  // A bare "56% match" reads as failure and tells the user
+                  // nothing they can act on. The perceptual reading is both
+                  // more honest and more useful: delta-E 2.3 is the
+                  // just-noticeable difference, so "close" genuinely means
+                  // close. Where the catalogue has no good match this still
+                  // says so plainly — see eval/catalog_audit.py.
+                  <p className="mt-3 flex items-baseline gap-2">
+                    <span className="text-label uppercase text-accent">
+                      {shade.closeness}
+                    </span>
+                    {typeof shade.delta_e === "number" && (
+                      <span className="font-mono text-label text-text-muted">
+                        ΔE {shade.delta_e.toFixed(1)}
+                      </span>
+                    )}
                   </p>
                 )}
               </Card>
@@ -330,9 +343,12 @@ export default function ResultsScreen({
                     key={`${product.brand}-${product.product}`}
                     product={{
                       ...product,
+                      // Absent key = not resolved yet, so the card shimmers.
+                      // Present-but-null = resolved to no photo, so it shows
+                      // its fallback immediately instead of waiting for the
+                      // rest of the batch.
                       imageUrl: images[imageKey(product.brand, product.product)],
                     }}
-                    imageLoading={imagesLoading}
                   />
                 ))}
               </motion.div>

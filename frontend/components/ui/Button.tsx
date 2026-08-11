@@ -46,7 +46,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       type={type}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-pill",
-        "tracking-wide transition-all duration-[--duration-fast] ease-[--ease-out-soft]",
+        "tracking-wide transition-all duration-(--duration-fast) ease-(--ease-out-soft)",
         "disabled:pointer-events-none disabled:opacity-40",
         sizes[size],
         variants[variant],

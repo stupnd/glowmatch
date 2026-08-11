@@ -79,7 +79,7 @@ export function Tabs({ tabs, activeId, onChange, label, className }: TabsProps) 
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
               "min-h-11 shrink-0 whitespace-nowrap rounded-pill px-4 text-small font-semibold",
-              "transition-colors duration-[--duration-fast]",
+              "transition-colors duration-(--duration-fast)",
               selected
                 ? "bg-accent text-bg"
                 : "text-text-soft hover:bg-raised hover:text-text",

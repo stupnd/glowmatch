@@ -31,7 +31,7 @@ export function Card({
         raised ? "bg-surface shadow-card" : "bg-transparent",
         paddings[padding],
         interactive &&
-          "transition-all duration-[--duration-base] ease-[--ease-out-soft] " +
+          "transition-all duration-(--duration-base) ease-(--ease-out-soft) " +
             "hover:border-line-strong hover:shadow-lift hover:-translate-y-0.5",
         className,
       )}
