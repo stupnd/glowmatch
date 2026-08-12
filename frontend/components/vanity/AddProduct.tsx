@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { lookupProducts, type ProductMatch } from "@/lib/api";
+import { lookupProducts, type ProductMatch, type ProductShade } from "@/lib/api";
+import { ShadePicker } from "@/components/vanity/ShadePicker";
 import {
   addInventoryItem,
   formatCents,
@@ -42,6 +43,7 @@ export function AddProduct({
 
   // Chosen or manually entered product.
   const [draft, setDraft] = useState<ProductMatch | null>(null);
+  const [shade, setShade] = useState<ProductShade | null>(null);
   const [priceText, setPriceText] = useState("");
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -79,6 +81,7 @@ export function AddProduct({
 
   const choose = (match: ProductMatch) => {
     setDraft(match);
+    setShade(null);
     setPriceText(match.price_cents !== null ? (match.price_cents / 100).toFixed(2) : "");
     setMatches([]);
   };
@@ -93,6 +96,7 @@ export function AddProduct({
       hex: null,
       price_cents: null,
     });
+    setShade(null);
     setPriceText("");
     setMatches([]);
   };
@@ -111,9 +115,11 @@ export function AddProduct({
         {
           brand: draft.brand.trim(),
           product: draft.product.trim(),
-          shade: draft.shade?.trim() || null,
+          shade: shade?.name.trim() || null,
+          // The picked shade's colour wins: it is the swatch for the exact
+          // shade, where draft.hex would only be the product's general tone.
           category: draft.category,
-          hex: draft.hex,
+          hex: shade?.hex ?? draft.hex,
           url: null,
           price_cents: parsePriceToCents(priceText),
           notes: null,
@@ -123,6 +129,7 @@ export function AddProduct({
       onAdded(created);
       setQuery("");
       setDraft(null);
+      setShade(null);
       setPriceText("");
       setSearched(false);
     } catch {
@@ -259,15 +266,6 @@ export function AddProduct({
           />
         </label>
         <label className="block">
-          <span className="text-label uppercase text-text-muted">Shade</span>
-          <input
-            className={`mt-1 ${FIELD}`}
-            value={draft.shade ?? ""}
-            onChange={(e) => setDraft({ ...draft, shade: e.target.value })}
-            placeholder="optional"
-          />
-        </label>
-        <label className="block">
           <span className="text-label uppercase text-text-muted">Category</span>
           <select
             className={`mt-1 ${FIELD}`}
@@ -295,21 +293,17 @@ export function AddProduct({
             inputMode="decimal"
           />
         </label>
-        <label className="block">
-          <span className="text-label uppercase text-text-muted">Shade colour</span>
-          <div className="mt-1 flex items-center gap-3">
-            <input
-              type="color"
-              value={draft.hex ?? "#c89a6b"}
-              onChange={(e) => setDraft({ ...draft, hex: e.target.value })}
-              className="h-12 w-16 cursor-pointer rounded-card border border-line bg-surface"
-              aria-label="Shade colour"
-            />
-            <span className="font-mono text-small text-text-muted">
-              {draft.hex ?? "#c89a6b"}
-            </span>
-          </div>
-        </label>
+      </div>
+
+      {/* Shades come from the product's own range, so they are recognised by
+          colour rather than recalled by name. */}
+      <div className="mt-4 border-t border-line pt-4">
+        <ShadePicker
+          brand={draft.brand}
+          product={draft.product}
+          selected={shade}
+          onSelect={setShade}
+        />
       </div>
 
       {problem && (

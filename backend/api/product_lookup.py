@@ -86,9 +86,10 @@ def search(query: str) -> list[dict]:
     )
     user = (
         f'Someone is adding a product they own to their collection. They typed: "{query}"\n\n'
-        f"Return up to {_MAX_RESULTS} real products this could be, best match "
-        "first. If the query names a specific shade, put it in `shade`; "
-        "otherwise give the most common shade or an empty string.\n\n"
+        f"Return up to {_MAX_RESULTS} real product LINES this could be, best "
+        "match first. Identify the product, not a shade — shades are chosen "
+        "separately, because their names are specific to each product "
+        "(Deauville, N5, 220) and nobody searches by them.\n\n"
         "Never invent a product. If you are unsure, return fewer results or an "
         "empty array — a wrong entry in someone's inventory is worse than no "
         "suggestion.\n\n"
@@ -96,8 +97,8 @@ def search(query: str) -> list[dict]:
         '{ "brand": "<company only, e.g. e.l.f.>", '
         '"product": "<product line without the brand>", '
         f'"category": "<one of: {_CATEGORIES}>", '
-        '"shade": "<shade name, or empty string>", '
-        '"hex": "<#rrggbb approximating that shade, or empty string>", '
+        '"shade": "", '
+        '"hex": "", '
         '"price_usd": <typical retail price as a number, or null> }'
     )
 
@@ -166,3 +167,90 @@ def _clean(item: object) -> dict | None:
         "hex": hex_value or None,
         "price_cents": price_cents,
     }
+
+
+# ── Shades for a chosen product ───────────────────────────────────────────────
+
+_shade_cache: dict[str, tuple[list[dict], float]] = {}
+_MAX_SHADES = 60
+
+
+def shades(brand: str, product: str) -> list[dict]:
+    """Return the real shade range for one product, with approximate colours.
+
+    A separate call from search() because shade names mean nothing outside
+    their product — "Deauville" is only findable once you know it is NARS Sheer
+    Glow. Cached hard: a shade range changes about once a year.
+    """
+    key = f"{brand.strip().lower()}|{product.strip().lower()}"
+    if not brand.strip() or not product.strip():
+        return []
+
+    with _lock:
+        entry = _shade_cache.get(key)
+        if entry and time.monotonic() < entry[1]:
+            return entry[0]
+
+    system = (
+        "You know the shade ranges of real makeup products. Return ONLY a JSON "
+        "array, no preamble, no markdown fences."
+    )
+    user = (
+        f"List the real shades of {brand} {product}, in the order the brand "
+        "lists them — lightest to deepest where that applies.\n\n"
+        "Only shades that genuinely exist. If the product has no shades (a "
+        "mascara, a clear balm), return an empty array. If you do not know the "
+        "range, return an empty array rather than inventing names.\n\n"
+        'Each element: { "name": "<shade name exactly as sold>", '
+        '"hex": "<#rrggbb approximating it>", '
+        '"undertone": "<warm | cool | neutral | empty string>" }'
+    )
+
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=2500,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        record_claude_usage(response)
+        raw = response.content[0].text.strip()
+    except Exception as exc:
+        print(f"[product-lookup] shade request failed for {key!r}: {exc}")
+        return []
+
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+    if raw.endswith("```"):
+        raw = raw.rsplit("```", 1)[0]
+
+    try:
+        parsed = json.loads(raw.strip())
+    except json.JSONDecodeError:
+        print(f"[product-lookup] non-JSON shade response for {key!r}")
+        return []
+    if not isinstance(parsed, list):
+        return []
+
+    out: list[dict] = []
+    seen: set[str] = set()
+    for item in parsed[:_MAX_SHADES]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name or name.lower() in seen:
+            continue
+        seen.add(name.lower())
+        hex_value = str(item.get("hex") or "").strip()
+        if not (len(hex_value) == 7 and hex_value.startswith("#")):
+            hex_value = ""
+        undertone = str(item.get("undertone") or "").strip().lower()
+        out.append({
+            "name": name,
+            "hex": hex_value or None,
+            "undertone": undertone if undertone in ("warm", "cool", "neutral") else None,
+        })
+
+    with _lock:
+        _shade_cache[key] = (out, time.monotonic() + _TTL_SECONDS)
+    return out

@@ -240,3 +240,18 @@ export type ProductMatch = {
 export function lookupProducts(query: string): Promise<{ results: ProductMatch[] }> {
   return postJson("/product-lookup", { query });
 }
+
+export type ProductShade = {
+  name: string;
+  hex: string | null;
+  undertone: "warm" | "cool" | "neutral" | null;
+};
+
+/** The shade range for one product. Separate from lookupProducts because a
+ *  shade name is only meaningful once the product is known. */
+export function lookupShades(
+  brand: string,
+  product: string,
+): Promise<{ shades: ProductShade[] }> {
+  return postJson("/product-shades", { brand, product });
+}
