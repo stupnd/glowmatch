@@ -28,8 +28,15 @@ export function ThemeToggle({ className }: { className?: string }) {
     const handleChange = () => {
       updateMetaThemeColor("system");
     };
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+
+    if ("addEventListener" in mediaQuery) {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    } else {
+      // Fallback for older browsers (e.g. Safari < 14)
+      (mediaQuery as MediaQueryList).addListener(handleChange);
+      return () => (mediaQuery as MediaQueryList).removeListener(handleChange);
+    }
   }, [theme]);
 
   const updateThemeMode = (nextTheme: ThemeMode) => {
@@ -73,7 +80,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       title={label}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-pill border border-line bg-raised/60 px-2.5 py-1",
-        "text-small font-medium text-text-soft transition-colors duration-[--duration-fast]",
+        "text-small font-medium text-text-soft transition-colors duration-[var(--duration-fast)]",
         "hover:bg-raised hover:text-text focus-visible:outline-2",
         className,
       )}
