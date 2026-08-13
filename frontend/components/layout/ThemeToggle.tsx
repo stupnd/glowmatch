@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-
-type ThemeMode = "system" | "light" | "dark";
+import {
+  ThemeMode,
+  THEME_STORAGE_KEY,
+  applyTheme,
+  updateMetaThemeColor,
+} from "@/lib/theme";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useState<ThemeMode>("system");
@@ -11,7 +15,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem("tinted-theme") as ThemeMode | null;
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
     if (stored === "light" || stored === "dark" || stored === "system") {
       setTheme(stored);
     }
@@ -21,42 +25,22 @@ export function ThemeToggle({ className }: { className?: string }) {
   useEffect(() => {
     if (theme !== "system") return;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute("content", e.matches ? "#f7f8f9" : "#0b0b0c");
-      }
+    const handleChange = () => {
+      updateMetaThemeColor("system");
     };
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme]);
 
-  const updateTheme = (nextTheme: ThemeMode) => {
+  const updateThemeMode = (nextTheme: ThemeMode) => {
     setTheme(nextTheme);
-    localStorage.setItem("tinted-theme", nextTheme);
-
-    const root = document.documentElement;
-    if (nextTheme === "system") {
-      root.removeAttribute("data-theme");
-    } else {
-      root.setAttribute("data-theme", nextTheme);
-    }
-
-    // Update meta theme-color tag dynamically
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (metaThemeColor) {
-      const isLight =
-        nextTheme === "light" ||
-        (nextTheme === "system" &&
-          window.matchMedia("(prefers-color-scheme: light)").matches);
-      metaThemeColor.setAttribute("content", isLight ? "#f7f8f9" : "#0b0b0c");
-    }
+    applyTheme(nextTheme);
   };
 
   const cycleTheme = () => {
-    if (theme === "system") updateTheme("light");
-    else if (theme === "light") updateTheme("dark");
-    else updateTheme("system");
+    if (theme === "system") updateThemeMode("light");
+    else if (theme === "light") updateThemeMode("dark");
+    else updateThemeMode("system");
   };
 
   if (!mounted) {

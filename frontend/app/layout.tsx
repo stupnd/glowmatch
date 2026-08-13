@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import Script from "next/script";
 import { Navbar } from "@/components/layout/Navbar";
+import { THEME_PRELOAD_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const inter = Inter({
@@ -41,7 +42,7 @@ export default function RootLayout({
           id="theme-preload"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("tinted-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();`,
+            __html: THEME_PRELOAD_SCRIPT,
           }}
         />
       </head>
