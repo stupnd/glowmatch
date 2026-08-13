@@ -10,6 +10,9 @@
    neutral grey (a hint cool, to counter the warmth of the accent), and the only
    saturated colour on screen belongs to the shades and the product photos.
 
+   The colour-accuracy argument still holds: shades and product photos are shown
+   on plain white (--color-swatch-ground) so nothing tints the judgement.
+
    Every text/surface pair below is verified at WCAG AA (4.5:1) for body text.
 
    Dark theme (default / data-theme="dark"):
@@ -34,6 +37,7 @@
   --color-surface: #141416;
   --color-raised: #1c1c1f;
   --color-overlay: rgba(6, 6, 7, 0.72);
+  --color-swatch-ground: #ffffff;
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
   --color-text: #f5f4f2;
@@ -41,11 +45,12 @@
   --color-text-muted: #8a8780;
 
   /* ── Accent ───────────────────────────────────────────────────────────── */
-  /* Bronze rather than pink: it sits beside every skin tone without competing
-     with it, which a saturated pink does not. */
   --color-accent: #c68642;
   --color-accent-bright: #e0a063;
+  --color-accent-vivid: #d9541f;
+  --color-accent-hover: #96330c;
   --color-accent-dim: rgba(198, 134, 66, 0.14);
+  --color-rose: #a8395e;
 
   /* ── Status ───────────────────────────────────────────────────────────── */
   --color-success: #6fbf8b;
@@ -60,21 +65,22 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
 
-  /* A 1.2 modular scale. Display sizes are for the one hero line per screen,
-     never for a section heading. */
-  --text-display: 3.5rem;
-  --text-display--line-height: 1.02;
+  --text-hero: clamp(2.75rem, 7vw, 5.5rem);
+  --text-hero--line-height: 0.95;
+  --text-hero--letter-spacing: -0.045em;
+  --text-display: clamp(2rem, 4.5vw, 3.5rem);
+  --text-display--line-height: 1.03;
   --text-display--letter-spacing: -0.03em;
-  --text-title: 2rem;
+  --text-title: 1.75rem;
   --text-title--line-height: 1.15;
   --text-title--letter-spacing: -0.02em;
-  --text-heading: 1.25rem;
-  --text-heading--line-height: 1.3;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.35;
+  --text-heading--letter-spacing: -0.01em;
   --text-body: 1rem;
   --text-body--line-height: 1.6;
   --text-small: 0.875rem;
   --text-small--line-height: 1.5;
-  /* Eyebrow labels. Tracking is wide because it is always uppercase. */
   --text-label: 0.75rem;
   --text-label--line-height: 1.4;
   --text-label--letter-spacing: 0.09em;
@@ -90,6 +96,10 @@
                  0 24px 48px -20px rgba(0, 0, 0, 0.95);
   --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
                  0 16px 40px -20px rgba(198, 134, 66, 0.45);
+
+  /* ── Rhythm ───────────────────────────────────────────────────────────── */
+  --space-section: 5rem;
+  --space-block: 1.5rem;
 
   /* ── Motion ───────────────────────────────────────────────────────────── */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -108,6 +118,7 @@
   --light-color-surface: #ffffff;
   --light-color-raised: #e8eaea;
   --light-color-overlay: rgba(247, 248, 249, 0.80);
+  --light-color-swatch-ground: #ffffff;
 
   --light-color-text: #141517;
   --light-color-text-soft: #484a4e;
@@ -139,6 +150,7 @@ html[data-theme="dark"] {
   --color-surface: #141416;
   --color-raised: #1c1c1f;
   --color-overlay: rgba(6, 6, 7, 0.72);
+  --color-swatch-ground: #ffffff;
 
   --color-text: #f5f4f2;
   --color-text-soft: #b4b1ab;
@@ -169,6 +181,7 @@ html[data-theme="light"] {
   --color-surface: var(--light-color-surface);
   --color-raised: var(--light-color-raised);
   --color-overlay: var(--light-color-overlay);
+  --color-swatch-ground: var(--light-color-swatch-ground);
 
   --color-text: var(--light-color-text);
   --color-text-soft: var(--light-color-text-soft);
@@ -197,6 +210,7 @@ html[data-theme="light"] {
     --color-surface: var(--light-color-surface);
     --color-raised: var(--light-color-raised);
     --color-overlay: var(--light-color-overlay);
+    --color-swatch-ground: var(--light-color-swatch-ground);
 
     --color-text: var(--light-color-text);
     --color-text-soft: var(--light-color-text-soft);
@@ -236,7 +250,7 @@ body {
 /* Visible, consistent focus. Never remove this without replacing it — keyboard
    users have no other way to tell where they are. */
 :focus-visible {
-  outline: 2px solid var(--color-accent-bright);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -259,7 +273,20 @@ body {
    Utilities
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Screen-reader-only, but focusable — used by the skip link. */
+/* Always hidden visually, always present to assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Screen-reader-only *until focused*, then shown as a real control. Only the
+   skip link should use this — on anything that can take focus it pops up as a
+   floating box in the corner. */
 .sr-only-focusable {
   position: absolute;
   width: 1px; height: 1px;
@@ -280,6 +307,31 @@ body {
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-pill);
   z-index: 200;
+}
+
+/* A horizontally scrolling strip shouldn't show a scrollbar over its own
+   rounded edge — the tab rail relies on this. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Line clamping. Product blurbs vary in length, which left a grid of cards
+   with ragged bottom edges — the clamp is what makes a row read as a row. */
+.clamp-1, .clamp-2, .clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+
+/* Signals that a horizontally scrolling rail continues past the edge, instead
+   of letting content look arbitrarily cut off. */
+.fade-edges {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 1.25rem,
+                       #000 calc(100% - 1.25rem), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 1.25rem,
+               #000 calc(100% - 1.25rem), transparent 100%);
 }
 
 /* Checkerboard behind cut-out product photos, so a transparent PNG doesn't
@@ -334,4 +386,36 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Editorial touches
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Slight rotation on alternating cards, straightening on hover. Cheap, and it
+   is most of what separates an editorial layout from a dashboard grid. */
+.tilt-a { transform: rotate(-1.4deg); }
+.tilt-b { transform: rotate(1.1deg); }
+.tilt-a, .tilt-b { transition: transform var(--duration-base) var(--ease-out-soft); }
+.tilt-a:hover, .tilt-b:hover { transform: rotate(0deg) translateY(-4px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt-a, .tilt-b { transform: none; }
+  .tilt-a:hover, .tilt-b:hover { transform: none; }
+}
+
+/* Warm bloom behind hero sections, so the cream ground is not flat. */
+.hero-wash {
+  position: relative;
+}
+.hero-wash::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 70%;
+  background:
+    radial-gradient(60% 60% at 20% 30%, rgba(217, 84, 31, 0.09), transparent 70%),
+    radial-gradient(50% 50% at 80% 20%, rgba(168, 57, 94, 0.07), transparent 70%);
+  pointer-events: none;
+  z-index: -1;
 }
