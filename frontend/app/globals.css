@@ -65,6 +65,11 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
 
+  /* Scale runs ~1.33 at the top and ~1.2 lower down. The previous 1.2
+     throughout meant a page heading and a section heading were one step
+     apart, which is why everything read as the same weight — flat hierarchy
+     is most of what "generic" actually means. Hero is deliberately far from
+     everything else: one per page, and it should dominate. */
   --text-hero: clamp(2.75rem, 7vw, 5.5rem);
   --text-hero--line-height: 0.95;
   --text-hero--letter-spacing: -0.045em;

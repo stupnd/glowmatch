@@ -48,7 +48,7 @@ export function QuestionStep({
               transition={{ delay: index * 0.03, duration: 0.2 }}
               className={cn(
                 "flex min-h-14 flex-col justify-center rounded-card border p-4 text-left",
-                "transition-colors duration-[--duration-fast]",
+                "transition-colors duration-(--duration-fast)",
                 isSelected
                   ? "border-accent bg-accent-dim"
                   : "border-line bg-surface hover:border-line-strong hover:bg-raised",
@@ -60,7 +60,7 @@ export function QuestionStep({
                     "flex h-5 w-5 shrink-0 items-center justify-center border",
                     question.multi ? "rounded-[0.3rem]" : "rounded-full",
                     isSelected
-                      ? "border-accent bg-accent text-bg"
+                      ? "border-accent bg-accent text-white"
                       : "border-line-strong",
                   )}
                   aria-hidden="true"

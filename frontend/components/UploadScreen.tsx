@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Page } from "@/components/ui/Page";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import CameraModal from "./CameraModal";
@@ -71,7 +72,7 @@ export default function UploadScreen({
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-20">
+    <Page width="grid">
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -108,7 +109,7 @@ export default function UploadScreen({
             onDrop={handleDrop}
             className={cn(
               "flex w-full flex-col items-center gap-4 rounded-card border border-dashed p-10",
-              "transition-colors duration-[--duration-fast]",
+              "transition-colors duration-(--duration-fast)",
               isDragging
                 ? "border-accent bg-accent-dim"
                 : "border-line-strong bg-surface hover:border-accent hover:bg-raised",
@@ -153,7 +154,7 @@ export default function UploadScreen({
             <span className="text-small text-text-muted">or</span>
             <Link
               href="/quiz"
-              className="inline-flex min-h-11 items-center text-small font-medium text-accent hover:text-accent-bright"
+              className="inline-flex min-h-11 items-center text-small font-medium text-accent hover:text-accent"
             >
               take the skincare quiz instead →
             </Link>
@@ -181,7 +182,7 @@ export default function UploadScreen({
                     className={cn(
                       "min-h-11 flex-1 rounded-pill border px-4 text-small transition-colors",
                       active
-                        ? "border-accent bg-accent-dim text-accent-bright"
+                        ? "border-accent bg-accent-dim text-accent"
                         : "border-line text-text-soft hover:border-line-strong hover:text-text",
                     )}
                   >
@@ -215,7 +216,7 @@ export default function UploadScreen({
                     className={cn(
                       "min-h-11 rounded-pill border px-4 text-small transition-colors",
                       selected
-                        ? "border-accent bg-accent-dim text-accent-bright"
+                        ? "border-accent bg-accent-dim text-accent"
                         : "border-line text-text-soft hover:border-line-strong hover:text-text",
                     )}
                   >
@@ -269,6 +270,6 @@ export default function UploadScreen({
           onClose={() => setCamera(false)}
         />
       )}
-    </div>
+    </Page>
   );
 }

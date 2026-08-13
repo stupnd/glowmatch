@@ -18,6 +18,7 @@ from api.limits import (
     spend_guard,
 )
 from api.product_images import resolve_many
+from api.product_lookup import search as search_products, shades as lookup_shades
 from api.skincare_recommendations import get_routine_products
 from api.uploads import read_image_upload
 from color_utils import preprocess_image
@@ -371,6 +372,49 @@ async def skincare_quiz(request: Request, req: SkincareQuizRequest) -> dict:
         "routine_steps": list(result.routine_steps),
         "routine":       products,
     }
+
+
+# ── Product lookup (inventory search) ─────────────────────────────────────────
+
+class ProductLookupRequest(BaseModel):
+    query: str
+
+
+@router.post("/product-lookup")
+async def product_lookup(request: Request, req: ProductLookupRequest) -> dict:
+    """Turn a partial product name into structured candidates.
+
+    Backs the inventory search box, so adding something you own is one search
+    and one click rather than six form fields. Shares the search rate-limit
+    bucket and the spend cap, since it is a Claude call per uncached query.
+    """
+    limiter.check(client_key(request), "search", SEARCH_RULES)
+    spend_guard.check()
+
+    results = await asyncio.to_thread(search_products, req.query.strip()[:120])
+    return {"results": results}
+
+
+class ProductShadesRequest(BaseModel):
+    brand:   str
+    product: str
+
+
+@router.post("/product-shades")
+async def product_shades(request: Request, req: ProductShadesRequest) -> dict:
+    """The shade range for one product.
+
+    Separate from /product-lookup because shade names only mean anything once
+    the product is known — "Deauville" is unfindable until you know it is NARS
+    Sheer Glow. So: search the product, then pick the shade.
+    """
+    limiter.check(client_key(request), "search", SEARCH_RULES)
+    spend_guard.check()
+
+    results = await asyncio.to_thread(
+        lookup_shades, req.brand.strip()[:80], req.product.strip()[:120]
+    )
+    return {"shades": results}
 
 
 # ── Product images (batch) ────────────────────────────────────────────────────

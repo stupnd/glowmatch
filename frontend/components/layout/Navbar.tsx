@@ -7,9 +7,9 @@ import { AuthButton } from "@/components/layout/AuthButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const LINKS = [
-  { href: "/", label: "Shade match" },
+  { href: "/match", label: "Shade match" },
   { href: "/quiz", label: "Skincare quiz" },
-  { href: "/lip-combo", label: "Lip combo" },
+  { href: "/vanity", label: "My vanity" },
 ];
 
 export function Navbar({ className }: { className?: string }) {
@@ -49,9 +49,9 @@ export function Navbar({ className }: { className?: string }) {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex min-h-11 items-center whitespace-nowrap rounded-pill px-3",
-                    "text-small font-medium transition-colors duration-[--duration-fast]",
+                    "text-small font-medium transition-colors duration-(--duration-fast)",
                     active
-                      ? "bg-accent-dim text-accent-bright"
+                      ? "bg-accent-dim text-accent"
                       : "text-text-soft hover:bg-raised hover:text-text",
                   )}
                 >

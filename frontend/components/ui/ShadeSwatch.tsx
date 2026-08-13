@@ -67,7 +67,7 @@ export function ShadeSwatch({
       aria-pressed={selected}
       className={cn(
         "flex min-h-11 w-full items-center gap-3 rounded-card border p-2 text-left",
-        "transition-colors duration-[--duration-fast]",
+        "transition-colors duration-(--duration-fast)",
         selected
           ? "border-accent bg-accent-dim"
           : "border-transparent hover:border-line-strong hover:bg-raised",

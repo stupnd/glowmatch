@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import type { Results } from "@/app/page"
+import type { AnalyzeResult as Results } from "@/lib/api"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,10 +94,10 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
     if (bboxRef.current) {
       const [bx, by, bw, bh] = bboxRef.current
       ctx.save()
-      ctx.strokeStyle = "#c68642"
+      ctx.strokeStyle = "#D9541F"
       ctx.lineWidth   = 2
       ctx.setLineDash([5, 4])
-      ctx.shadowColor = "#c68642"
+      ctx.shadowColor = "#D9541F"
       ctx.shadowBlur  = 8
       ctx.strokeRect(bx*sx, by*sy, bw*sx, bh*sy)
       ctx.restore()
@@ -109,8 +109,8 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
       ctx.save()
       ctx.beginPath()
       ctx.arc(lx*sx, ly*sy, 3.5, 0, Math.PI * 2)
-      ctx.fillStyle  = "#c68642"
-      ctx.shadowColor = "#c68642"
+      ctx.fillStyle  = "#D9541F"
+      ctx.shadowColor = "#D9541F"
       ctx.shadowBlur  = 8
       ctx.fill()
       ctx.restore()
@@ -448,7 +448,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
                         className="w-full rounded-sm"
                         style={{
                           height:     `${barH}px`,
-                          background: winner ? "#c68642" : MONK_COLORS[mst - 1],
+                          background: winner ? "#D9541F" : MONK_COLORS[mst - 1],
                           opacity:    winner ? 1 : 0.55,
                           boxShadow:  winner ? `0 0 10px ${MONK_COLORS[mst-1]}` : "none",
                           alignSelf:  "flex-end",
@@ -510,7 +510,7 @@ export default function LiveAnalyzer({ file, budget, onComplete, onReset }: Prop
                       width:      active ? "16px" : "4px",
                       height:     "4px",
                       background: done   ? "rgba(198,134,66,0.4)"
-                                : active ? "#c68642"
+                                : active ? "#D9541F"
                                 :          "rgba(255,255,255,0.12)",
                     }}
                   />

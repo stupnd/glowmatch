@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
+import { Page } from "@/components/ui/Page";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { QuestionStep } from "@/components/quiz/QuestionStep";
 import { RoutineResults } from "@/components/quiz/RoutineResults";
@@ -123,7 +124,7 @@ export default function QuizPage() {
 
   if (phase === "loading") {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-20">
+      <Page width="prose">
         <div className="h-2 w-40 animate-pulse rounded-pill bg-raised" />
         <div className="mt-6 h-8 w-3/4 animate-pulse rounded-pill bg-raised" />
         <div className="mt-8 grid gap-2 sm:grid-cols-2">
@@ -131,13 +132,13 @@ export default function QuizPage() {
             <div key={i} className="h-16 animate-pulse rounded-card bg-surface" />
           ))}
         </div>
-      </div>
+      </Page>
     );
   }
 
   if (phase === "error") {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-20">
+      <Page width="prose">
         <h1 className="font-display text-title text-text">
           That didn&apos;t work
         </h1>
@@ -151,14 +152,14 @@ export default function QuizPage() {
         <Button className="mt-6" onClick={() => window.location.reload()}>
           Try again
         </Button>
-      </div>
+      </Page>
     );
   }
 
   if (phase === "submitting") {
     return (
-      <div className="mx-auto flex max-w-2xl flex-col items-center px-4 py-24 text-center">
-        <div className="flex gap-1.5" aria-hidden="true">
+      <Page width="prose" className="text-center md:pt-24">
+        <div className="flex justify-center gap-1.5" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <span
               key={i}
@@ -173,7 +174,7 @@ export default function QuizPage() {
         <p className="mt-2 text-small text-text-muted">
           Matching {Object.keys(answers).length} answers against product tags.
         </p>
-      </div>
+      </Page>
     );
   }
 
@@ -197,7 +198,7 @@ export default function QuizPage() {
   const canContinue = !question.multi || selected.length > 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 md:py-16">
+    <Page width="prose">
       <ProgressBar current={index + 1} total={questions.length} className="mb-8" />
 
       <AnimatePresence mode="wait">
@@ -257,7 +258,7 @@ export default function QuizPage() {
                 className={
                   "min-h-11 rounded-pill border px-4 text-small transition-colors " +
                   (budget === option.value
-                    ? "border-accent bg-accent-dim text-accent-bright"
+                    ? "border-accent bg-accent-dim text-accent"
                     : "border-line text-text-soft hover:border-line-strong hover:text-text")
                 }
               >
@@ -267,6 +268,6 @@ export default function QuizPage() {
           </div>
         </fieldset>
       )}
-    </div>
+    </Page>
   );
 }

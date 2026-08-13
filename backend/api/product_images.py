@@ -21,6 +21,7 @@ Design notes
 from __future__ import annotations
 
 import asyncio
+import random
 import threading
 import time
 
@@ -32,8 +33,17 @@ _TTL_HIT_SECONDS = 24 * 60 * 60
 # Misses expire sooner so a transient DDGS failure isn't remembered all day.
 _TTL_MISS_SECONDS = 30 * 60
 
-# DDGS starts throttling well before this; keep it low.
-_MAX_CONCURRENCY = 4
+# DDGS throttles far more aggressively than a 429 would suggest. Under load it
+# does not error — it returns a full page of results for something unrelated
+# ("Revlon ColorStay Foundation" came back as Riverdale cast photos, "Laura
+# Mercier Flawless Fusion" as photographs of a scarlet ibis). The same queries
+# in isolation return correct results, so this is our own concurrency poisoning
+# the well. Two at a time, staggered.
+_MAX_CONCURRENCY = 2
+
+# Jitter before each request so a batch does not arrive as one burst.
+_STAGGER_MIN_MS = 120
+_STAGGER_MAX_MS = 320
 
 # Refuse to grow without bound if traffic is all unique products.
 _MAX_ENTRIES = 5_000
@@ -169,24 +179,51 @@ def _lookup_one(brand: str, product: str) -> str | None:
     if not query:
         return None
 
-    try:
-        with DDGS() as ddgs:
-            candidates = list(
-                ddgs.images(query, max_results=12, safesearch="moderate")
-            )
-    except Exception as exc:
-        print(f"[product-images] lookup failed for {query!r}: {exc}")
-        return None
+    # DDGS is unreliable in a way that looks like "this product has no photo":
+    # it intermittently returns one unrelated result, or nothing, for queries
+    # that work fine seconds later. A single attempt therefore drops photos for
+    # real products. Retry once with a shortened query — the brand plus the
+    # first two words of the product name — which also helps when the model
+    # returns an over-long product string.
+    # Retry the SAME query rather than a shortened one. Truncating loses the
+    # discriminating words and makes things worse, not better: "NARS Natural
+    # Radiant Longwear Foundation" returns the product, while "NARS Natural
+    # Radiant" returns Matchbox toy cars. The full query is right; the failure
+    # is transient throttling, so the fix is to wait rather than to reword.
+    attempts = 3
 
-    best_url, best_score = None, _MIN_SCORE - 1
-    for image in candidates:
-        score = _score_candidate(image, brand, product)
-        if score > best_score:
-            best_url, best_score = str(image.get("image", "")), score
+    for index in range(attempts):
+        attempt = query
+        if index:
+            time.sleep(0.9 * index)
+        try:
+            with DDGS() as ddgs:
+                candidates = list(
+                    ddgs.images(attempt, max_results=12, safesearch="moderate")
+                )
+        except Exception as exc:
+            print(f"[product-images] lookup failed for {attempt!r}: {exc}")
+            continue
 
-    if best_url is None:
-        print(f"[product-images] no confident match for {query!r} — showing none")
-    return best_url
+        best_url, best_score = None, _MIN_SCORE - 1
+        for image in candidates:
+            score = _score_candidate(image, brand, product)
+            if score > best_score:
+                best_url, best_score = str(image.get("image", "")), score
+
+        if best_url is not None:
+            return best_url
+
+        # Retrying on *relevance*, not on result count. A throttled response
+        # arrives full — ten results, none of them the product — so counting
+        # rows would never catch it.
+        print(
+            f"[product-images] {len(candidates)} results but none relevant for "
+            f"{attempt!r}"
+        )
+
+    print(f"[product-images] no confident match for {query!r} — showing none")
+    return None
 
 
 async def resolve_many(products: list[tuple[str, str]]) -> dict[str, str | None]:
@@ -221,6 +258,7 @@ async def resolve_many(products: list[tuple[str, str]]) -> dict[str, str | None]
 
     async def worker(key: str, brand: str, product: str) -> None:
         async with semaphore:
+            await asyncio.sleep(random.uniform(_STAGGER_MIN_MS, _STAGGER_MAX_MS) / 1000)
             url = await asyncio.to_thread(_lookup_one, brand, product)
         _cache.put(key, url)
         results[key] = url

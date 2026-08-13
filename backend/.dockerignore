@@ -1,0 +1,28 @@
+# Without this, `COPY . .` pulls the local virtualenvs into the image — they
+# are hundreds of megabytes each and are rebuilt by pip inside the container
+# anyway. This was the difference between a 3.87GB image and a workable one.
+.venv
+.venv-*
+venv
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+
+# Secrets never belong in an image layer.
+.env
+.env.*
+!.env.example
+
+# Training-only. ml/train.py is not run in the container, and the checkpoint it
+# produces is not loaded at request time.
+ml/train.py
+ml/monk_classifier.pt
+ml/data
+
+# Test and evaluation assets are not needed to serve requests.
+tests
+eval
+.pytest_cache
+
+.DS_Store

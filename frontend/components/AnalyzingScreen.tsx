@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Page } from "@/components/ui/Page";
 import { motion } from "framer-motion";
-import MonkScaleBar from "./MonkScaleBar";
+import { ToneRibbon } from "@/components/ui/ToneRibbon";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -38,7 +39,7 @@ export default function AnalyzingScreen({
 
   if (qualityErrors) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-20">
+      <Page width="prose">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -73,12 +74,12 @@ export default function AnalyzingScreen({
             Try another photo
           </Button>
         </motion.div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-20">
+    <Page width="prose">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <p className="text-label uppercase text-accent">Working on it</p>
         <h1
@@ -94,7 +95,7 @@ export default function AnalyzingScreen({
         </p>
 
         <div className="my-8">
-          <MonkScaleBar animate className="w-full" />
+          <ToneRibbon animate size="md" />
         </div>
 
         <Card padding="md">
@@ -122,6 +123,6 @@ export default function AnalyzingScreen({
           </p>
         </Card>
       </motion.div>
-    </div>
+    </Page>
   );
 }

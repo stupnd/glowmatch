@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { Page } from "@/components/ui/Page";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -32,7 +33,7 @@ export function RoutineResults({
   const byStep = new Map(routine.map((item) => [item.step, item]));
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+    <Page width="list">
       <header className="mb-8">
         <p className="text-label uppercase text-accent">Your routine</p>
         <h1 className="mt-1 font-display text-title text-text md:text-display">
@@ -96,7 +97,7 @@ export function RoutineResults({
                 <span
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                    "border border-line-strong bg-raised font-display text-small text-accent-bright",
+                    "border border-line-strong bg-raised font-display text-small text-accent",
                   )}
                   aria-hidden="true"
                 >
@@ -117,7 +118,7 @@ export function RoutineResults({
                         {item.brand} {item.product}
                       </p>
                       {item.key_ingredient && (
-                        <p className="mt-0.5 text-small text-accent-bright">
+                        <p className="mt-0.5 text-small text-accent">
                           {item.key_ingredient}
                         </p>
                       )}
@@ -131,7 +132,7 @@ export function RoutineResults({
                           href={item.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-2 inline-flex min-h-11 items-center gap-1 text-small font-medium text-accent hover:text-accent-bright"
+                          className="mt-2 inline-flex min-h-11 items-center gap-1 text-small font-medium text-accent hover:text-accent"
                         >
                           Shop this
                           <span aria-hidden="true">→</span>
@@ -170,6 +171,6 @@ export function RoutineResults({
         introduce one at a time, and see a dermatologist for persistent
         conditions.
       </p>
-    </div>
+    </Page>
   );
 }

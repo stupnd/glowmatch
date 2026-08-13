@@ -52,7 +52,12 @@ export function Tabs({ tabs, activeId, onChange, label, className }: TabsProps) 
       role="tablist"
       aria-label={label}
       className={cn(
-        "inline-flex flex-wrap gap-1 rounded-pill border border-line bg-surface p-1",
+        // Was a wrapping pill: at 10 categories it broke onto a second row and
+        // the rounded container sheared around the selected tab. A single
+        // scrolling row keeps the shape intact at any count.
+        "flex max-w-full items-center gap-1 overflow-x-auto rounded-pill",
+        "border border-line bg-surface p-1",
+        "no-scrollbar fade-edges",
         className,
       )}
     >
@@ -73,10 +78,10 @@ export function Tabs({ tabs, activeId, onChange, label, className }: TabsProps) 
             onClick={() => onChange(tab.id)}
             onKeyDown={(event) => onKeyDown(event, index)}
             className={cn(
-              "min-h-11 rounded-pill px-4 text-small font-semibold",
-              "transition-colors duration-[--duration-fast]",
+              "min-h-11 shrink-0 whitespace-nowrap rounded-pill px-4 text-small font-semibold",
+              "transition-colors duration-(--duration-fast)",
               selected
-                ? "bg-accent text-bg"
+                ? "bg-accent text-white"
                 : "text-text-soft hover:bg-raised hover:text-text",
             )}
           >
@@ -85,7 +90,7 @@ export function Tabs({ tabs, activeId, onChange, label, className }: TabsProps) 
               <span
                 className={cn(
                   "ml-1.5 tabular-nums",
-                  selected ? "text-bg/70" : "text-text-muted",
+                  selected ? "text-white/75" : "text-text-muted",
                 )}
               >
                 {tab.count}

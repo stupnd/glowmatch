@@ -119,6 +119,10 @@ export type MatchedShade = {
   description: string;
   recommendation?: string;
   match_score?: number;
+  /** CIEDE2000 to the measured skin tone. ~2.3 is the just-noticeable difference. */
+  delta_e?: number;
+  /** Plain-language reading of delta_e, from the backend. */
+  closeness?: string;
 };
 
 export type AnalyzeResult = {
@@ -196,4 +200,58 @@ export function submitQuiz(
   budget: string,
 ): Promise<QuizResponse> {
   return postJson("/skincare-quiz", { answers, budget });
+}
+
+// ── Lip palette ───────────────────────────────────────────────────────────────
+
+export type LipFamily = {
+  name: string;
+  hex: string;
+  note: string;
+  undertone_affinity: string;
+  in_depth_range: boolean;
+  why: string;
+};
+
+/** Lip colour families ranked for a measured tone. Colours, not products. */
+export function fetchLipPalette(
+  undertone: string,
+  mstLevel: number,
+): Promise<{ undertone: string; mst_level: number; families: LipFamily[] }> {
+  const params = new URLSearchParams({
+    undertone,
+    mst_level: String(mstLevel),
+  });
+  return request(`/lip-palette?${params}`);
+}
+
+// ── Product lookup (inventory search) ─────────────────────────────────────────
+
+export type ProductMatch = {
+  brand: string;
+  product: string;
+  category: string | null;
+  shade: string | null;
+  hex: string | null;
+  /** Typical retail price in cents. An estimate, not live pricing. */
+  price_cents: number | null;
+};
+
+export function lookupProducts(query: string): Promise<{ results: ProductMatch[] }> {
+  return postJson("/product-lookup", { query });
+}
+
+export type ProductShade = {
+  name: string;
+  hex: string | null;
+  undertone: "warm" | "cool" | "neutral" | null;
+};
+
+/** The shade range for one product. Separate from lookupProducts because a
+ *  shade name is only meaningful once the product is known. */
+export function lookupShades(
+  brand: string,
+  product: string,
+): Promise<{ shades: ProductShade[] }> {
+  return postJson("/product-shades", { brand, product });
 }
