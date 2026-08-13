@@ -102,6 +102,36 @@
    Theme Token Rules
    ═══════════════════════════════════════════════════════════════════════════ */
 
+:root {
+  /* ── Shared Light Theme Token Definitions (Single Source of Truth) ────── */
+  --light-color-bg: #f7f8f9;
+  --light-color-surface: #ffffff;
+  --light-color-raised: #e8eaea;
+  --light-color-overlay: rgba(247, 248, 249, 0.80);
+
+  --light-color-text: #141517;
+  --light-color-text-soft: #484a4e;
+  --light-color-text-muted: #616368;
+
+  --light-color-accent: #875018;
+  --light-color-accent-bright: #6e3e0e;
+  --light-color-accent-dim: rgba(135, 80, 24, 0.12);
+
+  --light-color-success: #2b7a4b;
+  --light-color-warn: #a36209;
+  --light-color-danger: #cf3b2b;
+
+  --light-color-line: rgba(0, 0, 0, 0.08);
+  --light-color-line-strong: rgba(0, 0, 0, 0.16);
+
+  --light-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                       0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --light-shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                       0 12px 28px -6px rgba(0, 0, 0, 0.12);
+  --light-shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                       0 8px 24px -6px rgba(135, 80, 24, 0.25);
+}
+
 :root,
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -133,66 +163,60 @@ html[data-theme="dark"] {
                  0 16px 40px -20px rgba(198, 134, 66, 0.45);
 }
 
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: var(--light-color-bg);
+  --color-surface: var(--light-color-surface);
+  --color-raised: var(--light-color-raised);
+  --color-overlay: var(--light-color-overlay);
+
+  --color-text: var(--light-color-text);
+  --color-text-soft: var(--light-color-text-soft);
+  --color-text-muted: var(--light-color-text-muted);
+
+  --color-accent: var(--light-color-accent);
+  --color-accent-bright: var(--light-color-accent-bright);
+  --color-accent-dim: var(--light-color-accent-dim);
+
+  --color-success: var(--light-color-success);
+  --color-warn: var(--light-color-warn);
+  --color-danger: var(--light-color-danger);
+
+  --color-line: var(--light-color-line);
+  --color-line-strong: var(--light-color-line-strong);
+
+  --shadow-card: var(--light-shadow-card);
+  --shadow-lift: var(--light-shadow-lift);
+  --shadow-glow: var(--light-shadow-glow);
+}
+
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --color-bg: #f7f8f9;
-    --color-surface: #ffffff;
-    --color-raised: #e8eaea;
-    --color-overlay: rgba(247, 248, 249, 0.80);
+    --color-bg: var(--light-color-bg);
+    --color-surface: var(--light-color-surface);
+    --color-raised: var(--light-color-raised);
+    --color-overlay: var(--light-color-overlay);
 
-    --color-text: #141517;
-    --color-text-soft: #484a4e;
-    --color-text-muted: #616368;
+    --color-text: var(--light-color-text);
+    --color-text-soft: var(--light-color-text-soft);
+    --color-text-muted: var(--light-color-text-muted);
 
-    --color-accent: #875018;
-    --color-accent-bright: #6e3e0e;
-    --color-accent-dim: rgba(135, 80, 24, 0.12);
+    --color-accent: var(--light-color-accent);
+    --color-accent-bright: var(--light-color-accent-bright);
+    --color-accent-dim: var(--light-color-accent-dim);
 
-    --color-success: #2b7a4b;
-    --color-warn: #a36209;
-    --color-danger: #cf3b2b;
+    --color-success: var(--light-color-success);
+    --color-warn: var(--light-color-warn);
+    --color-danger: var(--light-color-danger);
 
-    --color-line: rgba(0, 0, 0, 0.08);
-    --color-line-strong: rgba(0, 0, 0, 0.16);
+    --color-line: var(--light-color-line);
+    --color-line-strong: var(--light-color-line-strong);
 
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
-                   0 4px 12px -2px rgba(0, 0, 0, 0.08);
-    --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
-                   0 12px 28px -6px rgba(0, 0, 0, 0.12);
-    --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
-                   0 8px 24px -6px rgba(135, 80, 24, 0.25);
+    --shadow-card: var(--light-shadow-card);
+    --shadow-lift: var(--light-shadow-lift);
+    --shadow-glow: var(--light-shadow-glow);
   }
-}
-
-html[data-theme="light"] {
-  color-scheme: light;
-  --color-bg: #f7f8f9;
-  --color-surface: #ffffff;
-  --color-raised: #e8eaea;
-  --color-overlay: rgba(247, 248, 249, 0.80);
-
-  --color-text: #141517;
-  --color-text-soft: #484a4e;
-  --color-text-muted: #616368;
-
-  --color-accent: #875018;
-  --color-accent-bright: #6e3e0e;
-  --color-accent-dim: rgba(135, 80, 24, 0.12);
-
-  --color-success: #2b7a4b;
-  --color-warn: #a36209;
-  --color-danger: #cf3b2b;
-
-  --color-line: rgba(0, 0, 0, 0.08);
-  --color-line-strong: rgba(0, 0, 0, 0.16);
-
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
-                 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-  --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
-                 0 12px 28px -6px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
-                 0 8px 24px -6px rgba(135, 80, 24, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -17,6 +17,20 @@ export function ThemeToggle({ className }: { className?: string }) {
     }
   }, []);
 
+  // Listen for system preference changes when in 'system' mode
+  useEffect(() => {
+    if (theme !== "system") return;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (metaThemeColor) {
+        metaThemeColor.setAttribute("content", e.matches ? "#f7f8f9" : "#0b0b0c");
+      }
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
+
   const updateTheme = (nextTheme: ThemeMode) => {
     setTheme(nextTheme);
     localStorage.setItem("tinted-theme", nextTheme);
@@ -49,11 +63,14 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          "inline-flex h-9 w-9 items-center justify-center rounded-pill border border-line bg-raised/50",
+          "inline-flex h-9 items-center gap-1.5 rounded-pill border border-line bg-raised/50 px-2.5 py-1",
           className,
         )}
         aria-hidden="true"
-      />
+      >
+        <div className="h-4 w-4 rounded-full bg-text-muted/20" />
+        <div className="hidden sm:inline-block h-3 w-8 rounded bg-text-muted/20" />
+      </div>
     );
   }
 
