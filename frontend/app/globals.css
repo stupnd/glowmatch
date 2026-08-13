@@ -3,7 +3,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    Tinted design system
 
-   Why a near-neutral dark canvas:
+   Why near-neutral canvases:
    this app's entire job is to show colour accurately. A tinted background
    shifts perceived skin tone — a warm page makes every swatch read warmer, and
    the undertone call is the product. So the surfaces are deliberately close to
@@ -11,11 +11,20 @@
    saturated colour on screen belongs to the shades and the product photos.
 
    Every text/surface pair below is verified at WCAG AA (4.5:1) for body text.
-   Measured against --color-bg / --color-surface / --color-raised respectively:
+
+   Dark theme (default / data-theme="dark"):
+   Measured against --color-bg (#0b0b0c) / --color-surface (#141416) / --color-raised (#1c1c1f):
      text        17.90 / 16.74 / 15.47
      text-soft    9.20 /  8.60 /  7.95
      text-muted   5.49 /  5.13 /  4.74
      accent       6.45 /  6.04 /  5.58
+
+   Light theme (prefers-color-scheme: light / data-theme="light"):
+   Measured against --color-bg (#f7f8f9) / --color-surface (#ffffff) / --color-raised (#e8eaea):
+     text        17.15 / 18.23 / 15.24
+     text-soft    8.29 /  8.82 /  7.37
+     text-muted   5.49 /  5.83 /  4.88
+     accent       6.10 /  6.49 /  5.43
    If you change a value here, re-check it before committing.
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -75,7 +84,6 @@
   --radius-pill: 999px;
 
   /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Dark UIs get depth from a light top edge, not from a heavier drop shadow. */
   --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
                  0 12px 32px -16px rgba(0, 0, 0, 0.9);
   --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
@@ -88,6 +96,103 @@
   --duration-fast: 140ms;
   --duration-base: 260ms;
   --duration-slow: 520ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme Token Rules
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #0b0b0c;
+  --color-surface: #141416;
+  --color-raised: #1c1c1f;
+  --color-overlay: rgba(6, 6, 7, 0.72);
+
+  --color-text: #f5f4f2;
+  --color-text-soft: #b4b1ab;
+  --color-text-muted: #8a8780;
+
+  --color-accent: #c68642;
+  --color-accent-bright: #e0a063;
+  --color-accent-dim: rgba(198, 134, 66, 0.14);
+
+  --color-success: #6fbf8b;
+  --color-warn: #e8b04b;
+  --color-danger: #f0796b;
+
+  --color-line: rgba(255, 255, 255, 0.09);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
+
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+                 0 12px 32px -16px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+                 0 24px 48px -20px rgba(0, 0, 0, 0.95);
+  --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
+                 0 16px 40px -20px rgba(198, 134, 66, 0.45);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-bg: #f7f8f9;
+    --color-surface: #ffffff;
+    --color-raised: #e8eaea;
+    --color-overlay: rgba(247, 248, 249, 0.80);
+
+    --color-text: #141517;
+    --color-text-soft: #484a4e;
+    --color-text-muted: #616368;
+
+    --color-accent: #875018;
+    --color-accent-bright: #6e3e0e;
+    --color-accent-dim: rgba(135, 80, 24, 0.12);
+
+    --color-success: #2b7a4b;
+    --color-warn: #a36209;
+    --color-danger: #cf3b2b;
+
+    --color-line: rgba(0, 0, 0, 0.08);
+    --color-line-strong: rgba(0, 0, 0, 0.16);
+
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                   0 4px 12px -2px rgba(0, 0, 0, 0.08);
+    --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                   0 12px 28px -6px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                   0 8px 24px -6px rgba(135, 80, 24, 0.25);
+  }
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f7f8f9;
+  --color-surface: #ffffff;
+  --color-raised: #e8eaea;
+  --color-overlay: rgba(247, 248, 249, 0.80);
+
+  --color-text: #141517;
+  --color-text-soft: #484a4e;
+  --color-text-muted: #616368;
+
+  --color-accent: #875018;
+  --color-accent-bright: #6e3e0e;
+  --color-accent-dim: rgba(135, 80, 24, 0.12);
+
+  --color-success: #2b7a4b;
+  --color-warn: #a36209;
+  --color-danger: #cf3b2b;
+
+  --color-line: rgba(0, 0, 0, 0.08);
+  --color-line-strong: rgba(0, 0, 0, 0.16);
+
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                 0 12px 28px -6px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                 0 8px 24px -6px rgba(135, 80, 24, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -113,18 +218,18 @@ body {
 }
 
 ::selection {
-  background: rgba(198, 134, 66, 0.3);
+  background: var(--color-accent-dim);
   color: var(--color-text);
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-line-strong);
   border: 3px solid var(--color-bg);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Utilities
@@ -157,10 +262,10 @@ body {
    vanish into the page. */
 .bg-swatch-check {
   background-image:
-    linear-gradient(45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(255,255,255,0.04) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.04) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.04) 75%);
+    linear-gradient(45deg, var(--color-line-strong) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-line-strong) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-line-strong) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-line-strong) 75%);
   background-size: 12px 12px;
   background-position: 0 0, 0 6px, 6px -6px, -6px 0;
 }
