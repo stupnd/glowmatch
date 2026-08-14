@@ -20,9 +20,12 @@ export function ThemeToggle({ className }: { className?: string }) {
     }
   }, []);
 
-  // Listen for system preference changes when in 'system' mode
+  // Listen for system preference changes when in 'system' mode, and immediately re-evaluate on entering system mode
   useEffect(() => {
     if (typeof window === "undefined" || theme !== "system") return;
+
+    // Immediately sync DOM attributes & meta header with current OS theme
+    applyTheme("system");
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     const handleChange = () => {
