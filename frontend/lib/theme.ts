@@ -55,7 +55,7 @@ export function updateMetaThemeColor(theme: ThemeMode): void {
   if (typeof window === "undefined") return;
 
   if (!cachedMetaTag || !document.contains(cachedMetaTag)) {
-    cachedMetaTag = document.querySelector('meta[name="theme-color"]');
+    cachedMetaTag = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
   }
   if (!cachedMetaTag) return;
 
