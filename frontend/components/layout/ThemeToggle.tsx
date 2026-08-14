@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   ThemeMode,
-  THEME_STORAGE_KEY,
+  getStoredTheme,
   applyTheme,
-  updateMetaThemeColor,
 } from "@/lib/theme";
 
 export function ThemeToggle({ className }: { className?: string }) {
@@ -15,15 +14,16 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
-    if (stored === "light" || stored === "dark" || stored === "system") {
+    const stored = getStoredTheme();
+    if (stored) {
       setTheme(stored);
     }
   }, []);
 
   // Listen for system preference changes when in 'system' mode
   useEffect(() => {
-    if (theme !== "system") return;
+    if (typeof window === "undefined" || theme !== "system") return;
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     const handleChange = () => {
       applyTheme("system");
