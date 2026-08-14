@@ -58,12 +58,18 @@ export function getStoredTheme(): ThemeMode | null {
 /**
  * Updates the <meta name="theme-color"> header content based on active theme
  * and system preference, caching the DOM reference for performance.
+ * Dynamically creates and appends the meta tag to document.head if missing.
  */
 export function updateMetaThemeColor(theme: ThemeMode): void {
   if (typeof window === "undefined") return;
 
   if (!cachedMetaTag || !document.contains(cachedMetaTag)) {
     cachedMetaTag = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+  }
+  if (!cachedMetaTag && document.head) {
+    cachedMetaTag = document.createElement("meta");
+    cachedMetaTag.setAttribute("name", "theme-color");
+    document.head.appendChild(cachedMetaTag);
   }
   if (!cachedMetaTag) return;
 
@@ -97,22 +103,55 @@ export function applyTheme(theme: ThemeMode): void {
 }
 
 /**
+ * Subscribes to OS system color scheme changes ("prefers-color-scheme: light").
+ * Executes the provided callback whenever the system color scheme changes.
+ * Returns an unsubscribe cleanup function.
+ */
+export function subscribeToSystemTheme(onChange: () => void): () => void {
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
+  const handleChange = () => onChange();
+
+  if ("addEventListener" in mediaQuery) {
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  } else {
+    // Fallback for older browsers (e.g. Safari < 14)
+    (mediaQuery as MediaQueryList).addListener(handleChange);
+    return () => (mediaQuery as MediaQueryList).removeListener(handleChange);
+  }
+}
+
+/**
  * Pre-hydration inline script string injected into <head> via next/script beforeInteractive.
- * Written as a self-contained inline script string to avoid brittleness under bundler minification.
+ * Reuses stringified getThemeAttribute and isLightTheme decision helpers to avoid drift.
+ * Dynamically creates meta[name="theme-color"] if missing in <head>.
  */
 export const THEME_PRELOAD_SCRIPT = `(function() {
   try {
+    var getThemeAttribute = ${getThemeAttribute.toString()};
+    var isLightTheme = ${isLightTheme.toString()};
+
     var stored = localStorage.getItem("${THEME_STORAGE_KEY}");
     var root = document.documentElement;
-    if (stored === "light" || stored === "dark") {
-      root.setAttribute("data-theme", stored);
+    var attr = getThemeAttribute(stored);
+    if (attr) {
+      root.setAttribute("data-theme", attr);
     } else {
       root.removeAttribute("data-theme");
     }
 
     var prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    var isLight = stored === "light" || ((!stored || stored === "system") && prefersLight);
+    var isLight = isLightTheme(stored, prefersLight);
     var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta && document.head) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'theme-color');
+      document.head.appendChild(meta);
+    }
     if (meta) {
       meta.setAttribute("content", isLight ? "${THEME_COLOR_LIGHT}" : "${THEME_COLOR_DARK}");
     }

@@ -6,6 +6,7 @@ import {
   ThemeMode,
   getStoredTheme,
   applyTheme,
+  subscribeToSystemTheme,
 } from "@/lib/theme";
 
 export function ThemeToggle({ className }: { className?: string }) {
@@ -22,21 +23,11 @@ export function ThemeToggle({ className }: { className?: string }) {
     setTheme(stored);
     applyTheme(stored);
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
-    const handleChange = () => {
+    return subscribeToSystemTheme(() => {
       if (themeRef.current === "system") {
         applyTheme("system");
       }
-    };
-
-    if ("addEventListener" in mediaQuery) {
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    } else {
-      // Fallback for older browsers (e.g. Safari < 14)
-      (mediaQuery as MediaQueryList).addListener(handleChange);
-      return () => (mediaQuery as MediaQueryList).removeListener(handleChange);
-    }
+    });
   }, []);
 
   const updateThemeMode = (nextTheme: ThemeMode) => {
