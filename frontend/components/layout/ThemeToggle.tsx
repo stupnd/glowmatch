@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   ThemeMode,
@@ -12,24 +12,21 @@ export function ThemeToggle({ className }: { className?: string }) {
   const [theme, setTheme] = useState<ThemeMode>("system");
   const [mounted, setMounted] = useState(false);
 
+  // Keep a ref to the latest active theme mode to allow a persistent matchMedia listener without re-attaching
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
   useEffect(() => {
     setMounted(true);
-    const stored = getStoredTheme();
-    if (stored) {
-      setTheme(stored);
-    }
-  }, []);
-
-  // Listen for system preference changes when in 'system' mode, and immediately re-evaluate on entering system mode
-  useEffect(() => {
-    if (typeof window === "undefined" || theme !== "system") return;
-
-    // Immediately sync DOM attributes & meta header with current OS theme
-    applyTheme("system");
+    const stored = getStoredTheme() ?? "system";
+    setTheme(stored);
+    applyTheme(stored);
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     const handleChange = () => {
-      applyTheme("system");
+      if (themeRef.current === "system") {
+        applyTheme("system");
+      }
     };
 
     if ("addEventListener" in mediaQuery) {
@@ -40,7 +37,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       (mediaQuery as MediaQueryList).addListener(handleChange);
       return () => (mediaQuery as MediaQueryList).removeListener(handleChange);
     }
-  }, [theme]);
+  }, []);
 
   const updateThemeMode = (nextTheme: ThemeMode) => {
     setTheme(nextTheme);

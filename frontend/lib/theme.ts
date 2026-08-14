@@ -96,24 +96,20 @@ export function applyTheme(theme: ThemeMode): void {
 
 /**
  * Pre-hydration inline script string injected into <head> via next/script beforeInteractive.
- * Reuses the core getThemeAttribute and isLightTheme decision logic functions to prevent theme drift.
+ * Written as a self-contained inline script string to avoid brittleness under bundler minification.
  */
 export const THEME_PRELOAD_SCRIPT = `(function() {
   try {
-    var getThemeAttribute = ${getThemeAttribute.toString()};
-    var isLightTheme = ${isLightTheme.toString()};
-
     var stored = localStorage.getItem("${THEME_STORAGE_KEY}");
     var root = document.documentElement;
-    var attr = getThemeAttribute(stored);
-    if (attr) {
-      root.setAttribute("data-theme", attr);
+    if (stored === "light" || stored === "dark") {
+      root.setAttribute("data-theme", stored);
     } else {
       root.removeAttribute("data-theme");
     }
 
     var prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-    var isLight = isLightTheme(stored, prefersLight);
+    var isLight = stored === "light" || ((!stored || stored === "system") && prefersLight);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
       meta.setAttribute("content", isLight ? "${THEME_COLOR_LIGHT}" : "${THEME_COLOR_DARK}");
