@@ -47,8 +47,8 @@
   /* ── Accent ───────────────────────────────────────────────────────────── */
   --color-accent: var(--dark-color-accent);
   --color-accent-bright: var(--dark-color-accent-bright);
-  --color-accent-vivid: #d9541f;
-  --color-accent-hover: #96330c;
+  --color-accent-vivid: var(--dark-color-accent-vivid);
+  --color-accent-hover: var(--dark-color-accent-hover);
   --color-accent-dim: var(--dark-color-accent-dim);
   --color-rose: #a8395e;
 
@@ -128,6 +128,8 @@
 
   --dark-color-accent: #c68642;
   --dark-color-accent-bright: #e0a063;
+  --dark-color-accent-vivid: #d9541f;
+  --dark-color-accent-hover: #96330c;
   --dark-color-accent-dim: rgba(198, 134, 66, 0.14);
 
   --dark-color-success: #6fbf8b;
@@ -157,6 +159,8 @@
 
   --light-color-accent: #875018;
   --light-color-accent-bright: #6e3e0e;
+  --light-color-accent-vivid: #b23f13;
+  --light-color-accent-hover: #5e310c;
   --light-color-accent-dim: rgba(135, 80, 24, 0.12);
 
   --light-color-success: #2b7a4b;
@@ -189,6 +193,8 @@ html[data-theme="dark"] {
 
   --color-accent: var(--dark-color-accent);
   --color-accent-bright: var(--dark-color-accent-bright);
+  --color-accent-vivid: var(--dark-color-accent-vivid);
+  --color-accent-hover: var(--dark-color-accent-hover);
   --color-accent-dim: var(--dark-color-accent-dim);
 
   --color-success: var(--dark-color-success);
@@ -217,6 +223,8 @@ html[data-theme="light"] {
 
   --color-accent: var(--light-color-accent);
   --color-accent-bright: var(--light-color-accent-bright);
+  --color-accent-vivid: var(--light-color-accent-vivid);
+  --color-accent-hover: var(--light-color-accent-hover);
   --color-accent-dim: var(--light-color-accent-dim);
 
   --color-success: var(--light-color-success);
@@ -246,6 +254,8 @@ html[data-theme="light"] {
 
     --color-accent: var(--light-color-accent);
     --color-accent-bright: var(--light-color-accent-bright);
+    --color-accent-vivid: var(--light-color-accent-vivid);
+    --color-accent-hover: var(--light-color-accent-hover);
     --color-accent-dim: var(--light-color-accent-dim);
 
     --color-success: var(--light-color-success);
