@@ -7,6 +7,31 @@ export const THEME_COLOR_DARK = "#0b0b0c";
 let cachedMetaTag: HTMLMetaElement | null = null;
 
 /**
+ * Returns the HTML data-theme attribute value for a given theme mode or raw stored string,
+ * or null if theme is "system", missing, or unrecognised.
+ */
+export function getThemeAttribute(theme: string | null): "light" | "dark" | null {
+  return theme === "light" || theme === "dark" ? theme : null;
+}
+
+/**
+ * Resolves whether a theme mode (or raw stored value) evaluates to light mode.
+ */
+export function isLightTheme(theme: string | null, prefersLight: boolean): boolean {
+  return theme === "light" || ((!theme || theme === "system") && prefersLight);
+}
+
+/**
+ * Resolves the effective theme mode ("light" or "dark") based on theme preference and system OS setting.
+ */
+export function resolveEffectiveTheme(
+  theme: string | null,
+  prefersLight: boolean,
+): "light" | "dark" {
+  return isLightTheme(theme, prefersLight) ? "light" : "dark";
+}
+
+/**
  * Safely reads stored theme preference from localStorage, handling security exceptions
  * in restricted browser environments (e.g. Safari Private Mode).
  */
@@ -35,10 +60,8 @@ export function updateMetaThemeColor(theme: ThemeMode): void {
   }
   if (!cachedMetaTag) return;
 
-  const isLight =
-    theme === "light" ||
-    (theme === "system" &&
-      window.matchMedia("(prefers-color-scheme: light)").matches);
+  const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+  const isLight = isLightTheme(theme, prefersLight);
 
   cachedMetaTag.setAttribute(
     "content",
@@ -54,11 +77,12 @@ export function applyTheme(theme: ThemeMode): void {
   if (typeof window === "undefined") return;
 
   const root = document.documentElement;
+  const attr = getThemeAttribute(theme);
 
-  if (theme === "system") {
-    root.removeAttribute("data-theme");
+  if (attr) {
+    root.setAttribute("data-theme", attr);
   } else {
-    root.setAttribute("data-theme", theme);
+    root.removeAttribute("data-theme");
   }
 
   try {
@@ -72,18 +96,24 @@ export function applyTheme(theme: ThemeMode): void {
 
 /**
  * Pre-hydration inline script string injected into <head> via next/script beforeInteractive.
- * Aligned directly with applyTheme and updateMetaThemeColor to prevent theme drift.
+ * Reuses the core getThemeAttribute and isLightTheme decision logic functions to prevent theme drift.
  */
 export const THEME_PRELOAD_SCRIPT = `(function() {
   try {
+    var getThemeAttribute = ${getThemeAttribute.toString()};
+    var isLightTheme = ${isLightTheme.toString()};
+
     var stored = localStorage.getItem("${THEME_STORAGE_KEY}");
     var root = document.documentElement;
-    if (stored === "light" || stored === "dark") {
-      root.setAttribute("data-theme", stored);
+    var attr = getThemeAttribute(stored);
+    if (attr) {
+      root.setAttribute("data-theme", attr);
     } else {
       root.removeAttribute("data-theme");
     }
-    var isLight = stored === "light" || ((!stored || stored === "system") && window.matchMedia("(prefers-color-scheme: light)").matches);
+
+    var prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+    var isLight = isLightTheme(stored, prefersLight);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
       meta.setAttribute("content", isLight ? "${THEME_COLOR_LIGHT}" : "${THEME_COLOR_DARK}");
