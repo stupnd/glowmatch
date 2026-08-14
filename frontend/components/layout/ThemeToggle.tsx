@@ -26,7 +26,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     if (theme !== "system") return;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     const handleChange = () => {
-      updateMetaThemeColor("system");
+      applyTheme("system");
     };
 
     if ("addEventListener" in mediaQuery) {
@@ -67,6 +67,13 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   const label =
     theme === "system"
+      ? "Theme: System"
+      : theme === "light"
+      ? "Theme: Light"
+      : "Theme: Dark";
+
+  const actionTooltip =
+    theme === "system"
       ? "Theme: System (click to switch to Light)"
       : theme === "light"
       ? "Theme: Light (click to switch to Dark)"
@@ -77,7 +84,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={cycleTheme}
       aria-label={label}
-      title={label}
+      title={actionTooltip}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-pill border border-line bg-raised/60 px-2.5 py-1",
         "text-small font-medium text-text-soft transition-colors duration-[var(--duration-fast)]",
