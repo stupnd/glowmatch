@@ -38,7 +38,7 @@ export default function RootLayout({
   return (
     {/* suppressHydrationWarning is placed on <html> strictly for the data-theme attribute injected pre-hydration by THEME_PRELOAD_SCRIPT. React only suppresses attribute warnings on <html> itself. */}
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
-      <head>
+      <body className="min-h-screen bg-bg text-text antialiased">
         <Script
           id="theme-preload"
           strategy="beforeInteractive"
@@ -46,8 +46,6 @@ export default function RootLayout({
             __html: THEME_PRELOAD_SCRIPT,
           }}
         />
-      </head>
-      <body className="min-h-screen bg-bg text-text antialiased">
         {/* First thing in the tab order — keyboard users shouldn't have to
             traverse the nav on every page. */}
         <a href="#main" className="sr-only-focusable">
