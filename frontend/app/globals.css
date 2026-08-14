@@ -65,11 +65,6 @@
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
 
-  /* Scale runs ~1.33 at the top and ~1.2 lower down. The previous 1.2
-     throughout meant a page heading and a section heading were one step
-     apart, which is why everything read as the same weight — flat hierarchy
-     is most of what "generic" actually means. Hero is deliberately far from
-     everything else: one per page, and it should dominate. */
   --text-hero: clamp(2.75rem, 7vw, 5.5rem);
   --text-hero--line-height: 0.95;
   --text-hero--letter-spacing: -0.045em;
@@ -176,7 +171,6 @@
                        0 12px 28px -6px rgba(0, 0, 0, 0.12);
   --light-shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
                        0 8px 24px -6px rgba(135, 80, 24, 0.25);
-}
 
   /* ── Default Active Theme Slot Assignment ─────────────────────────────── */
   --active-bg: var(--dark-color-bg);
@@ -205,6 +199,35 @@
   --active-shadow-card: var(--dark-shadow-card);
   --active-shadow-lift: var(--dark-shadow-lift);
   --active-shadow-glow: var(--dark-shadow-glow);
+
+  /* ── Single Mapping of Active Slots to Design Tokens ───────────────────── */
+  color-scheme: dark;
+  --color-bg: var(--active-bg);
+  --color-surface: var(--active-surface);
+  --color-raised: var(--active-raised);
+  --color-overlay: var(--active-overlay);
+  --color-swatch-ground: var(--active-swatch-ground);
+
+  --color-text: var(--active-text);
+  --color-text-soft: var(--active-text-soft);
+  --color-text-muted: var(--active-text-muted);
+
+  --color-accent: var(--active-accent);
+  --color-accent-bright: var(--active-accent-bright);
+  --color-accent-vivid: var(--active-accent-vivid);
+  --color-accent-hover: var(--active-accent-hover);
+  --color-accent-dim: var(--active-accent-dim);
+
+  --color-success: var(--active-success);
+  --color-warn: var(--active-warn);
+  --color-danger: var(--active-danger);
+
+  --color-line: var(--active-line);
+  --color-line-strong: var(--active-line-strong);
+
+  --shadow-card: var(--active-shadow-card);
+  --shadow-lift: var(--active-shadow-lift);
+  --shadow-glow: var(--active-shadow-glow);
 }
 
 html[data-theme="dark"] {
@@ -297,36 +320,6 @@ html[data-theme="light"] {
     --active-shadow-lift: var(--light-shadow-lift);
     --active-shadow-glow: var(--light-shadow-glow);
   }
-}
-
-/* Single Universal Token Map */
-:root {
-  --color-bg: var(--active-bg);
-  --color-surface: var(--active-surface);
-  --color-raised: var(--active-raised);
-  --color-overlay: var(--active-overlay);
-  --color-swatch-ground: var(--active-swatch-ground);
-
-  --color-text: var(--active-text);
-  --color-text-soft: var(--active-text-soft);
-  --color-text-muted: var(--active-text-muted);
-
-  --color-accent: var(--active-accent);
-  --color-accent-bright: var(--active-accent-bright);
-  --color-accent-vivid: var(--active-accent-vivid);
-  --color-accent-hover: var(--active-accent-hover);
-  --color-accent-dim: var(--active-accent-dim);
-
-  --color-success: var(--active-success);
-  --color-warn: var(--active-warn);
-  --color-danger: var(--active-danger);
-
-  --color-line: var(--active-line);
-  --color-line-strong: var(--active-line-strong);
-
-  --shadow-card: var(--active-shadow-card);
-  --shadow-lift: var(--active-shadow-lift);
-  --shadow-glow: var(--active-shadow-glow);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
