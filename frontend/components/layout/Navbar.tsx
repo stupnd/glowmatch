@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { AuthButton } from "@/components/layout/AuthButton";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const LINKS = [
   { href: "/match", label: "Shade match" },
@@ -48,7 +49,7 @@ export function Navbar({ className }: { className?: string }) {
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex min-h-11 items-center whitespace-nowrap rounded-pill px-3",
-                    "text-small font-medium transition-colors duration-(--duration-fast)",
+                    "text-small font-medium transition-colors duration-[var(--duration-fast)]",
                     active
                       ? "bg-accent-dim text-accent"
                       : "text-text-soft hover:bg-raised hover:text-text",
@@ -62,6 +63,7 @@ export function Navbar({ className }: { className?: string }) {
         </ul>
 
         <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
           <AuthButton />
         </div>
       </nav>

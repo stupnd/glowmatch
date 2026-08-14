@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
+import Script from "next/script";
 import { Navbar } from "@/components/layout/Navbar";
+import { THEME_PRELOAD_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,8 +36,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+    {/* suppressHydrationWarning is placed on <html> strictly for the data-theme attribute injected pre-hydration by THEME_PRELOAD_SCRIPT. React only suppresses attribute warnings on <html> itself. */}
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-bg text-text antialiased">
+        <Script
+          id="theme-preload"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: THEME_PRELOAD_SCRIPT,
+          }}
+        />
         {/* First thing in the tab order — keyboard users shouldn't have to
             traverse the nav on every page. */}
         <a href="#main" className="sr-only-focusable">

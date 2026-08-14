@@ -1,71 +1,70 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Tinted design system — warm editorial
+   Tinted design system
 
-   Cream ground, near-black serif, coral accent. The previous dark bronze
-   palette was read as "a developer tool", which was fair: dark surface plus a
-   tan accent is the visual language of an IDE, not a beauty product.
+   Why near-neutral canvases:
+   this app's entire job is to show colour accurately. A tinted background
+   shifts perceived skin tone — a warm page makes every swatch read warmer, and
+   the undertone call is the product. So the surfaces are deliberately close to
+   neutral grey (a hint cool, to counter the warmth of the accent), and the only
+   saturated colour on screen belongs to the shades and the product photos.
 
-   The colour-accuracy argument still holds, but it applies to *the swatch
-   surface*, not the whole app. Shades and product photos are shown on plain
-   white (--color-swatch-ground) so nothing tints the judgement; the warm cream
-   is chrome around them, never behind a colour being assessed.
+   The colour-accuracy argument still holds: shades and product photos are shown
+   on plain white (--color-swatch-ground) so nothing tints the judgement.
 
-   Contrast is measured, not guessed. Worst case per token against
-   cream / white / blush:
-     text          17.27 / 18.35 / 15.92
-     text-soft      7.88 /  8.37 /  7.27
-     text-muted     4.90 /  5.20 /  4.51
-     accent-text    5.47 /  5.81 /  5.04
-   White on the button fill (--color-accent) is 5.81. The brighter coral
-   (--color-accent-vivid) is 3.77 and is therefore LARGE TEXT AND FILLS ONLY —
-   never small type.
+   Every text/surface pair below is verified at WCAG AA (4.5:1) for body text.
+
+   Dark theme (default / data-theme="dark"):
+   Measured against --color-bg (#0b0b0c) / --color-surface (#141416) / --color-raised (#1c1c1f):
+     text        17.90 / 16.74 / 15.47
+     text-soft    9.20 /  8.60 /  7.95
+     text-muted   5.49 /  5.13 /  4.74
+     accent       6.45 /  6.04 /  5.58
+
+   Light theme (prefers-color-scheme: light / data-theme="light"):
+   Measured against --color-bg (#f7f8f9) / --color-surface (#ffffff) / --color-raised (#e8eaea):
+     text        17.15 / 18.23 / 15.24
+     text-soft    8.29 /  8.82 /  7.37
+     text-muted   5.49 /  5.83 /  4.88
+     accent       6.10 /  6.49 /  5.43
+   If you change a value here, re-check it before committing.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ── Surfaces ─────────────────────────────────────────────────────────── */
-  --color-bg: #fdf7f2;
-  --color-surface: #ffffff;
-  --color-raised: #f8ede4;
-  --color-overlay: rgba(38, 24, 18, 0.45);
-  /* Neutral ground for anything whose colour is being judged. */
-  --color-swatch-ground: #ffffff;
+  /* ── Dynamic Surfaces ─────────────────────────────────────────────────── */
+  --color-bg: var(--theme-color-bg);
+  --color-surface: var(--theme-color-surface);
+  --color-raised: var(--theme-color-raised);
+  --color-overlay: var(--theme-color-overlay);
+  --color-swatch-ground: var(--theme-color-swatch-ground);
 
-  /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text: #1a1310;
-  --color-text-soft: #5c4a40;
-  --color-text-muted: #7d6959;
+  /* ── Dynamic Text ─────────────────────────────────────────────────────── */
+  --color-text: var(--theme-color-text);
+  --color-text-soft: var(--theme-color-text-soft);
+  --color-text-muted: var(--theme-color-text-muted);
 
-  /* ── Accent ───────────────────────────────────────────────────────────── */
-  /* accent = fills and small text (white on it passes AA).
-     accent-vivid = display type and decoration only. */
-  --color-accent: #b23f13;
-  --color-accent-vivid: #d9541f;
-  /* Hover on a filled button darkens rather than brightens — white on this is
-     7.57, so the label stays readable through the transition. */
-  --color-accent-hover: #96330c;
-  --color-accent-dim: rgba(217, 84, 31, 0.1);
+  /* ── Dynamic Accent ───────────────────────────────────────────────────── */
+  --color-accent: var(--theme-color-accent);
+  --color-accent-bright: var(--theme-color-accent-bright);
+  --color-accent-vivid: var(--theme-color-accent-vivid);
+  --color-accent-hover: var(--theme-color-accent-hover);
+  --color-accent-dim: var(--theme-color-accent-dim);
   --color-rose: #a8395e;
 
-  /* ── Status ───────────────────────────────────────────────────────────── */
-  --color-success: #1f6b4a;
-  --color-warn: #7a5408;
-  --color-danger: #b3261e;
+  /* ── Dynamic Status ───────────────────────────────────────────────────── */
+  --color-success: var(--theme-color-success);
+  --color-warn: var(--theme-color-warn);
+  --color-danger: var(--theme-color-danger);
 
-  /* ── Lines ────────────────────────────────────────────────────────────── */
-  --color-line: #ecdfd4;
-  --color-line-strong: #dcc8b8;
+  /* ── Dynamic Lines ────────────────────────────────────────────────────── */
+  --color-line: var(--theme-color-line);
+  --color-line-strong: var(--theme-color-line-strong);
 
   /* ── Type ─────────────────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;
 
-  /* Scale runs ~1.33 at the top and ~1.2 lower down. The previous 1.2
-     throughout meant a page heading and a section heading were one step
-     apart, which is why everything read as the same weight — flat hierarchy
-     is most of what "generic" actually means. Hero is deliberately far from
-     everything else: one per page, and it should dominate. */
   --text-hero: clamp(2.75rem, 7vw, 5.5rem);
   --text-hero--line-height: 0.95;
   --text-hero--letter-spacing: -0.045em;
@@ -82,7 +81,6 @@
   --text-body--line-height: 1.6;
   --text-small: 0.875rem;
   --text-small--line-height: 1.5;
-  /* Eyebrow labels. Tracking is wide because it is always uppercase. */
   --text-label: 0.75rem;
   --text-label--line-height: 1.4;
   --text-label--letter-spacing: 0.09em;
@@ -91,20 +89,12 @@
   --radius-card: 0.875rem;
   --radius-pill: 999px;
 
-  /* ── Elevation ────────────────────────────────────────────────────────── */
-  /* Light UIs get depth from soft, warm-tinted drop shadows. The previous
-     inset top-highlight only reads on a dark surface. */
-  --shadow-card: 0 1px 2px rgba(90, 55, 35, 0.05),
-                 0 8px 24px -12px rgba(90, 55, 35, 0.14);
-  --shadow-lift: 0 2px 6px rgba(90, 55, 35, 0.07),
-                 0 24px 48px -18px rgba(90, 55, 35, 0.22);
-  --shadow-glow: 0 0 0 1px rgba(217, 84, 31, 0.28),
-                 0 18px 40px -20px rgba(217, 84, 31, 0.35);
+  /* ── Dynamic Elevation ────────────────────────────────────────────────── */
+  --shadow-card: var(--theme-shadow-card);
+  --shadow-lift: var(--theme-shadow-lift);
+  --shadow-glow: var(--theme-shadow-glow);
 
   /* ── Rhythm ───────────────────────────────────────────────────────────── */
-  /* One vertical scale, so sections don't each invent their own spacing.
-     Gaps within a section come from the block scale; gaps between sections
-     from --space-section. */
   --space-section: 5rem;
   --space-block: 1.5rem;
 
@@ -113,6 +103,171 @@
   --duration-fast: 140ms;
   --duration-base: 260ms;
   --duration-slow: 520ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme Token Rules
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Single Source of Truth: Light Theme Values ────────────────────────── */
+  --light-color-bg: #f7f8f9;
+  --light-color-surface: #ffffff;
+  --light-color-raised: #e8eaea;
+  --light-color-overlay: rgba(247, 248, 249, 0.80);
+  --light-color-swatch-ground: #ffffff;
+
+  --light-color-text: #141517;
+  --light-color-text-soft: #484a4e;
+  --light-color-text-muted: #616368;
+
+  --light-color-accent: #875018;
+  --light-color-accent-bright: #6e3e0e;
+  --light-color-accent-vivid: #b23f13;
+  --light-color-accent-hover: #5e310c;
+  --light-color-accent-dim: rgba(135, 80, 24, 0.12);
+
+  --light-color-success: #2b7a4b;
+  --light-color-warn: #a36209;
+  --light-color-danger: #cf3b2b;
+
+  --light-color-line: rgba(0, 0, 0, 0.08);
+  --light-color-line-strong: rgba(0, 0, 0, 0.16);
+
+  --light-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                       0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --light-shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                       0 12px 28px -6px rgba(0, 0, 0, 0.12);
+  --light-shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                       0 8px 24px -6px rgba(135, 80, 24, 0.25);
+
+  /* ── Single Source of Truth: Dark Theme Values ─────────────────────────── */
+  --dark-color-bg: #0b0b0c;
+  --dark-color-surface: #141416;
+  --dark-color-raised: #1c1c1f;
+  --dark-color-overlay: rgba(6, 6, 7, 0.72);
+  --dark-color-swatch-ground: #ffffff;
+
+  --dark-color-text: #f5f4f2;
+  --dark-color-text-soft: #b4b1ab;
+  --dark-color-text-muted: #8a8780;
+
+  --dark-color-accent: #c68642;
+  --dark-color-accent-bright: #e0a063;
+  --dark-color-accent-vivid: #d9541f;
+  --dark-color-accent-hover: #96330c;
+  --dark-color-accent-dim: rgba(198, 134, 66, 0.14);
+
+  --dark-color-success: #6fbf8b;
+  --dark-color-warn: #e8b04b;
+  --dark-color-danger: #f0796b;
+
+  --dark-color-line: rgba(255, 255, 255, 0.09);
+  --dark-color-line-strong: rgba(255, 255, 255, 0.16);
+
+  --dark-shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+                      0 12px 32px -16px rgba(0, 0, 0, 0.9);
+  --dark-shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+                      0 24px 48px -20px rgba(0, 0, 0, 0.95);
+  --dark-shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
+                      0 16px 40px -20px rgba(198, 134, 66, 0.45);
+}
+
+/* ── Dark Theme Mapping (Default & Explicit) ────────────────────────────── */
+:root,
+.theme-dark,
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --theme-color-bg: var(--dark-color-bg);
+  --theme-color-surface: var(--dark-color-surface);
+  --theme-color-raised: var(--dark-color-raised);
+  --theme-color-overlay: var(--dark-color-overlay);
+  --theme-color-swatch-ground: var(--dark-color-swatch-ground);
+
+  --theme-color-text: var(--dark-color-text);
+  --theme-color-text-soft: var(--dark-color-text-soft);
+  --theme-color-text-muted: var(--dark-color-text-muted);
+
+  --theme-color-accent: var(--dark-color-accent);
+  --theme-color-accent-bright: var(--dark-color-accent-bright);
+  --theme-color-accent-vivid: var(--dark-color-accent-vivid);
+  --theme-color-accent-hover: var(--dark-color-accent-hover);
+  --theme-color-accent-dim: var(--dark-color-accent-dim);
+
+  --theme-color-success: var(--dark-color-success);
+  --theme-color-warn: var(--dark-color-warn);
+  --theme-color-danger: var(--dark-color-danger);
+
+  --theme-color-line: var(--dark-color-line);
+  --theme-color-line-strong: var(--dark-color-line-strong);
+
+  --theme-shadow-card: var(--dark-shadow-card);
+  --theme-shadow-lift: var(--dark-shadow-lift);
+  --theme-shadow-glow: var(--dark-shadow-glow);
+}
+
+/* ── Light Theme Mapping ───────────────────────────────────────────────── */
+.theme-light,
+html[data-theme="light"] {
+  color-scheme: light;
+  --theme-color-bg: var(--light-color-bg);
+  --theme-color-surface: var(--light-color-surface);
+  --theme-color-raised: var(--light-color-raised);
+  --theme-color-overlay: var(--light-color-overlay);
+  --theme-color-swatch-ground: var(--light-color-swatch-ground);
+
+  --theme-color-text: var(--light-color-text);
+  --theme-color-text-soft: var(--light-color-text-soft);
+  --theme-color-text-muted: var(--light-color-text-muted);
+
+  --theme-color-accent: var(--light-color-accent);
+  --theme-color-accent-bright: var(--light-color-accent-bright);
+  --theme-color-accent-vivid: var(--light-color-accent-vivid);
+  --theme-color-accent-hover: var(--light-color-accent-hover);
+  --theme-color-accent-dim: var(--light-color-accent-dim);
+
+  --theme-color-success: var(--light-color-success);
+  --theme-color-warn: var(--light-color-warn);
+  --theme-color-danger: var(--light-color-danger);
+
+  --theme-color-line: var(--light-color-line);
+  --theme-color-line-strong: var(--light-color-line-strong);
+
+  --theme-shadow-card: var(--light-shadow-card);
+  --theme-shadow-lift: var(--light-shadow-lift);
+  --theme-shadow-glow: var(--light-shadow-glow);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --theme-color-bg: var(--light-color-bg);
+    --theme-color-surface: var(--light-color-surface);
+    --theme-color-raised: var(--light-color-raised);
+    --theme-color-overlay: var(--light-color-overlay);
+    --theme-color-swatch-ground: var(--light-color-swatch-ground);
+
+    --theme-color-text: var(--light-color-text);
+    --theme-color-text-soft: var(--light-color-text-soft);
+    --theme-color-text-muted: var(--light-color-text-muted);
+
+    --theme-color-accent: var(--light-color-accent);
+    --theme-color-accent-bright: var(--light-color-accent-bright);
+    --theme-color-accent-vivid: var(--light-color-accent-vivid);
+    --theme-color-accent-hover: var(--light-color-accent-hover);
+    --theme-color-accent-dim: var(--light-color-accent-dim);
+
+    --theme-color-success: var(--light-color-success);
+    --theme-color-warn: var(--light-color-warn);
+    --theme-color-danger: var(--light-color-danger);
+
+    --theme-color-line: var(--light-color-line);
+    --theme-color-line-strong: var(--light-color-line-strong);
+
+    --theme-shadow-card: var(--light-shadow-card);
+    --theme-shadow-lift: var(--light-shadow-lift);
+    --theme-shadow-glow: var(--light-shadow-glow);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -138,7 +293,7 @@ body {
 }
 
 ::selection {
-  background: rgba(217, 84, 31, 0.2);
+  background: var(--color-accent-dim);
   color: var(--color-text);
 }
 
@@ -149,7 +304,7 @@ body {
   border: 3px solid var(--color-bg);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: #c9b2a0; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Utilities
@@ -220,10 +375,10 @@ body {
    vanish into the page. */
 .bg-swatch-check {
   background-image:
-    linear-gradient(45deg, rgba(90,55,35,0.05) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(90,55,35,0.05) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(90,55,35,0.05) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(90,55,35,0.05) 75%);
+    linear-gradient(45deg, var(--color-line-strong) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-line-strong) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--color-line-strong) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--color-line-strong) 75%);
   background-size: 12px 12px;
   background-position: 0 0, 0 6px, 6px -6px, -6px 0;
 }
