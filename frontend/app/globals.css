@@ -33,33 +33,33 @@
 
 @theme {
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
-  --color-bg: var(--dark-color-bg);
-  --color-surface: var(--dark-color-surface);
-  --color-raised: var(--dark-color-raised);
-  --color-overlay: var(--dark-color-overlay);
-  --color-swatch-ground: var(--dark-color-swatch-ground);
+  --color-bg: #0b0b0c;
+  --color-surface: #141416;
+  --color-raised: #1c1c1f;
+  --color-overlay: rgba(6, 6, 7, 0.72);
+  --color-swatch-ground: #ffffff;
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
-  --color-text: var(--dark-color-text);
-  --color-text-soft: var(--dark-color-text-soft);
-  --color-text-muted: var(--dark-color-text-muted);
+  --color-text: #f5f4f2;
+  --color-text-soft: #b4b1ab;
+  --color-text-muted: #8a8780;
 
   /* ── Accent ───────────────────────────────────────────────────────────── */
-  --color-accent: var(--dark-color-accent);
-  --color-accent-bright: var(--dark-color-accent-bright);
-  --color-accent-vivid: var(--dark-color-accent-vivid);
-  --color-accent-hover: var(--dark-color-accent-hover);
-  --color-accent-dim: var(--dark-color-accent-dim);
+  --color-accent: #c68642;
+  --color-accent-bright: #e0a063;
+  --color-accent-vivid: #d9541f;
+  --color-accent-hover: #96330c;
+  --color-accent-dim: rgba(198, 134, 66, 0.14);
   --color-rose: #a8395e;
 
   /* ── Status ───────────────────────────────────────────────────────────── */
-  --color-success: var(--dark-color-success);
-  --color-warn: var(--dark-color-warn);
-  --color-danger: var(--dark-color-danger);
+  --color-success: #6fbf8b;
+  --color-warn: #e8b04b;
+  --color-danger: #f0796b;
 
   /* ── Lines ────────────────────────────────────────────────────────────── */
-  --color-line: var(--dark-color-line);
-  --color-line-strong: var(--dark-color-line-strong);
+  --color-line: rgba(255, 255, 255, 0.09);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
 
   /* ── Type ─────────────────────────────────────────────────────────────── */
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
@@ -90,9 +90,12 @@
   --radius-pill: 999px;
 
   /* ── Elevation ────────────────────────────────────────────────────────── */
-  --shadow-card: var(--dark-shadow-card);
-  --shadow-lift: var(--dark-shadow-lift);
-  --shadow-glow: var(--dark-shadow-glow);
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+                 0 12px 32px -16px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+                 0 24px 48px -20px rgba(0, 0, 0, 0.95);
+  --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
+                 0 16px 40px -20px rgba(198, 134, 66, 0.45);
 
   /* ── Rhythm ───────────────────────────────────────────────────────────── */
   --space-section: 5rem;
@@ -109,216 +112,105 @@
    Theme Token Rules
    ═══════════════════════════════════════════════════════════════════════════ */
 
-:root {
-  /* ── Shared Dark Theme Token Definitions (Single Source of Truth) ─────── */
-  --dark-color-bg: #0b0b0c;
-  --dark-color-surface: #141416;
-  --dark-color-raised: #1c1c1f;
-  --dark-color-overlay: rgba(6, 6, 7, 0.72);
-  --dark-color-swatch-ground: #ffffff;
-
-  --dark-color-text: #f5f4f2;
-  --dark-color-text-soft: #b4b1ab;
-  --dark-color-text-muted: #8a8780;
-
-  --dark-color-accent: #c68642;
-  --dark-color-accent-bright: #e0a063;
-  --dark-color-accent-vivid: #d9541f;
-  --dark-color-accent-hover: #96330c;
-  --dark-color-accent-dim: rgba(198, 134, 66, 0.14);
-
-  --dark-color-success: #6fbf8b;
-  --dark-color-warn: #e8b04b;
-  --dark-color-danger: #f0796b;
-
-  --dark-color-line: rgba(255, 255, 255, 0.09);
-  --dark-color-line-strong: rgba(255, 255, 255, 0.16);
-
-  --dark-shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-                      0 12px 32px -16px rgba(0, 0, 0, 0.9);
-  --dark-shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
-                      0 24px 48px -20px rgba(0, 0, 0, 0.95);
-  --dark-shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
-                      0 16px 40px -20px rgba(198, 134, 66, 0.45);
-
-  /* ── Shared Light Theme Token Definitions (Single Source of Truth) ────── */
-  --light-color-bg: #f7f8f9;
-  --light-color-surface: #ffffff;
-  --light-color-raised: #e8eaea;
-  --light-color-overlay: rgba(247, 248, 249, 0.80);
-  --light-color-swatch-ground: #ffffff;
-
-  --light-color-text: #141517;
-  --light-color-text-soft: #484a4e;
-  --light-color-text-muted: #616368;
-
-  --light-color-accent: #875018;
-  --light-color-accent-bright: #6e3e0e;
-  --light-color-accent-vivid: #b23f13;
-  --light-color-accent-hover: #5e310c;
-  --light-color-accent-dim: rgba(135, 80, 24, 0.12);
-
-  --light-color-success: #2b7a4b;
-  --light-color-warn: #a36209;
-  --light-color-danger: #cf3b2b;
-
-  --light-color-line: rgba(0, 0, 0, 0.08);
-  --light-color-line-strong: rgba(0, 0, 0, 0.16);
-
-  --light-shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
-                       0 4px 12px -2px rgba(0, 0, 0, 0.08);
-  --light-shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
-                       0 12px 28px -6px rgba(0, 0, 0, 0.12);
-  --light-shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
-                       0 8px 24px -6px rgba(135, 80, 24, 0.25);
-
-  /* ── Default Active Theme Slot Assignment ─────────────────────────────── */
-  --active-bg: var(--dark-color-bg);
-  --active-surface: var(--dark-color-surface);
-  --active-raised: var(--dark-color-raised);
-  --active-overlay: var(--dark-color-overlay);
-  --active-swatch-ground: var(--dark-color-swatch-ground);
-
-  --active-text: var(--dark-color-text);
-  --active-text-soft: var(--dark-color-text-soft);
-  --active-text-muted: var(--dark-color-text-muted);
-
-  --active-accent: var(--dark-color-accent);
-  --active-accent-bright: var(--dark-color-accent-bright);
-  --active-accent-vivid: var(--dark-color-accent-vivid);
-  --active-accent-hover: var(--dark-color-accent-hover);
-  --active-accent-dim: var(--dark-color-accent-dim);
-
-  --active-success: var(--dark-color-success);
-  --active-warn: var(--dark-color-warn);
-  --active-danger: var(--dark-color-danger);
-
-  --active-line: var(--dark-color-line);
-  --active-line-strong: var(--dark-color-line-strong);
-
-  --active-shadow-card: var(--dark-shadow-card);
-  --active-shadow-lift: var(--dark-shadow-lift);
-  --active-shadow-glow: var(--dark-shadow-glow);
-
-  /* ── Single Mapping of Active Slots to Design Tokens ───────────────────── */
-  color-scheme: dark;
-  --color-bg: var(--active-bg);
-  --color-surface: var(--active-surface);
-  --color-raised: var(--active-raised);
-  --color-overlay: var(--active-overlay);
-  --color-swatch-ground: var(--active-swatch-ground);
-
-  --color-text: var(--active-text);
-  --color-text-soft: var(--active-text-soft);
-  --color-text-muted: var(--active-text-muted);
-
-  --color-accent: var(--active-accent);
-  --color-accent-bright: var(--active-accent-bright);
-  --color-accent-vivid: var(--active-accent-vivid);
-  --color-accent-hover: var(--active-accent-hover);
-  --color-accent-dim: var(--active-accent-dim);
-
-  --color-success: var(--active-success);
-  --color-warn: var(--active-warn);
-  --color-danger: var(--active-danger);
-
-  --color-line: var(--active-line);
-  --color-line-strong: var(--active-line-strong);
-
-  --shadow-card: var(--active-shadow-card);
-  --shadow-lift: var(--active-shadow-lift);
-  --shadow-glow: var(--active-shadow-glow);
-}
-
+:root,
 html[data-theme="dark"] {
   color-scheme: dark;
-  --active-bg: var(--dark-color-bg);
-  --active-surface: var(--dark-color-surface);
-  --active-raised: var(--dark-color-raised);
-  --active-overlay: var(--dark-color-overlay);
-  --active-swatch-ground: var(--dark-color-swatch-ground);
+  --color-bg: #0b0b0c;
+  --color-surface: #141416;
+  --color-raised: #1c1c1f;
+  --color-overlay: rgba(6, 6, 7, 0.72);
+  --color-swatch-ground: #ffffff;
 
-  --active-text: var(--dark-color-text);
-  --active-text-soft: var(--dark-color-text-soft);
-  --active-text-muted: var(--dark-color-text-muted);
+  --color-text: #f5f4f2;
+  --color-text-soft: #b4b1ab;
+  --color-text-muted: #8a8780;
 
-  --active-accent: var(--dark-color-accent);
-  --active-accent-bright: var(--dark-color-accent-bright);
-  --active-accent-vivid: var(--dark-color-accent-vivid);
-  --active-accent-hover: var(--dark-color-accent-hover);
-  --active-accent-dim: var(--dark-color-accent-dim);
+  --color-accent: #c68642;
+  --color-accent-bright: #e0a063;
+  --color-accent-vivid: #d9541f;
+  --color-accent-hover: #96330c;
+  --color-accent-dim: rgba(198, 134, 66, 0.14);
 
-  --active-success: var(--dark-color-success);
-  --active-warn: var(--dark-color-warn);
-  --active-danger: var(--dark-color-danger);
+  --color-success: #6fbf8b;
+  --color-warn: #e8b04b;
+  --color-danger: #f0796b;
 
-  --active-line: var(--dark-color-line);
-  --active-line-strong: var(--dark-color-line-strong);
+  --color-line: rgba(255, 255, 255, 0.09);
+  --color-line-strong: rgba(255, 255, 255, 0.16);
 
-  --active-shadow-card: var(--dark-shadow-card);
-  --active-shadow-lift: var(--dark-shadow-lift);
-  --active-shadow-glow: var(--dark-shadow-glow);
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+                 0 12px 32px -16px rgba(0, 0, 0, 0.9);
+  --shadow-lift: 0 1px 0 0 rgba(255, 255, 255, 0.07) inset,
+                 0 24px 48px -20px rgba(0, 0, 0, 0.95);
+  --shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
+                 0 16px 40px -20px rgba(198, 134, 66, 0.45);
 }
 
 html[data-theme="light"] {
   color-scheme: light;
-  --active-bg: var(--light-color-bg);
-  --active-surface: var(--light-color-surface);
-  --active-raised: var(--light-color-raised);
-  --active-overlay: var(--light-color-overlay);
-  --active-swatch-ground: var(--light-color-swatch-ground);
+  --color-bg: #f7f8f9;
+  --color-surface: #ffffff;
+  --color-raised: #e8eaea;
+  --color-overlay: rgba(247, 248, 249, 0.80);
+  --color-swatch-ground: #ffffff;
 
-  --active-text: var(--light-color-text);
-  --active-text-soft: var(--light-color-text-soft);
-  --active-text-muted: var(--light-color-text-muted);
+  --color-text: #141517;
+  --color-text-soft: #484a4e;
+  --color-text-muted: #616368;
 
-  --active-accent: var(--light-color-accent);
-  --active-accent-bright: var(--light-color-accent-bright);
-  --active-accent-vivid: var(--light-color-accent-vivid);
-  --active-accent-hover: var(--light-color-accent-hover);
-  --active-accent-dim: var(--light-color-accent-dim);
+  --color-accent: #875018;
+  --color-accent-bright: #6e3e0e;
+  --color-accent-vivid: #b23f13;
+  --color-accent-hover: #5e310c;
+  --color-accent-dim: rgba(135, 80, 24, 0.12);
 
-  --active-success: var(--light-color-success);
-  --active-warn: var(--light-color-warn);
-  --active-danger: var(--light-color-danger);
+  --color-success: #2b7a4b;
+  --color-warn: #a36209;
+  --color-danger: #cf3b2b;
 
-  --active-line: var(--light-color-line);
-  --active-line-strong: var(--light-color-line-strong);
+  --color-line: rgba(0, 0, 0, 0.08);
+  --color-line-strong: rgba(0, 0, 0, 0.16);
 
-  --active-shadow-card: var(--light-shadow-card);
-  --active-shadow-lift: var(--light-shadow-lift);
-  --active-shadow-glow: var(--light-shadow-glow);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                 0 12px 28px -6px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                 0 8px 24px -6px rgba(135, 80, 24, 0.25);
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
-    --active-bg: var(--light-color-bg);
-    --active-surface: var(--light-color-surface);
-    --active-raised: var(--light-color-raised);
-    --active-overlay: var(--light-color-overlay);
-    --active-swatch-ground: var(--light-color-swatch-ground);
+    --color-bg: #f7f8f9;
+    --color-surface: #ffffff;
+    --color-raised: #e8eaea;
+    --color-overlay: rgba(247, 248, 249, 0.80);
+    --color-swatch-ground: #ffffff;
 
-    --active-text: var(--light-color-text);
-    --active-text-soft: var(--light-color-text-soft);
-    --active-text-muted: var(--light-color-text-muted);
+    --color-text: #141517;
+    --color-text-soft: #484a4e;
+    --color-text-muted: #616368;
 
-    --active-accent: var(--light-color-accent);
-    --active-accent-bright: var(--light-color-accent-bright);
-    --active-accent-vivid: var(--light-color-accent-vivid);
-    --active-accent-hover: var(--light-color-accent-hover);
-    --active-accent-dim: var(--light-color-accent-dim);
+    --color-accent: #875018;
+    --color-accent-bright: #6e3e0e;
+    --color-accent-vivid: #b23f13;
+    --color-accent-hover: #5e310c;
+    --color-accent-dim: rgba(135, 80, 24, 0.12);
 
-    --active-success: var(--light-color-success);
-    --active-warn: var(--light-color-warn);
-    --active-danger: var(--light-color-danger);
+    --color-success: #2b7a4b;
+    --color-warn: #a36209;
+    --color-danger: #cf3b2b;
 
-    --active-line: var(--light-color-line);
-    --active-line-strong: var(--light-color-line-strong);
+    --color-line: rgba(0, 0, 0, 0.08);
+    --color-line-strong: rgba(0, 0, 0, 0.16);
 
-    --active-shadow-card: var(--light-shadow-card);
-    --active-shadow-lift: var(--light-shadow-lift);
-    --active-shadow-glow: var(--light-shadow-glow);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06),
+                   0 4px 12px -2px rgba(0, 0, 0, 0.08);
+    --shadow-lift: 0 4px 16px -2px rgba(0, 0, 0, 0.10),
+                   0 12px 28px -6px rgba(0, 0, 0, 0.12);
+    --shadow-glow: 0 0 0 1px rgba(135, 80, 24, 0.30),
+                   0 8px 24px -6px rgba(135, 80, 24, 0.25);
   }
 }
 
