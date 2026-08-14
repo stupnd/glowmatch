@@ -54,13 +54,24 @@ export function ThemeToggle({ className }: { className?: string }) {
     return (
       <div
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-pill border border-line bg-raised/50 px-2.5 py-1",
+          "inline-flex h-9 items-center gap-1.5 rounded-pill border border-line bg-raised/60 px-2.5 py-1",
+          "text-small font-medium text-text-soft transition-colors duration-[var(--duration-fast)]",
           className,
         )}
         aria-hidden="true"
       >
-        <div className="h-4 w-4 rounded-full bg-text-muted/20" />
-        <div className="hidden sm:inline-block h-3 w-8 rounded bg-text-muted/20" />
+        <svg
+          className="h-4 w-4 text-text-muted/40"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+          aria-hidden="true"
+        >
+          <rect x="3" y="4" width="18" height="12" rx="2" />
+          <path strokeLinecap="round" d="M8 20h8m-4-4v4" />
+        </svg>
+        <span className="hidden sm:inline text-xs text-text-muted/40">Auto</span>
       </div>
     );
   }
