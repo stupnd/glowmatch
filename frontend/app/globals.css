@@ -172,37 +172,10 @@
   --dark-shadow-glow: 0 0 0 1px rgba(198, 134, 66, 0.35),
                       0 16px 40px -20px rgba(198, 134, 66, 0.45);
 
-  /* ── Dark Theme Defaults ───────────────────────────────────────────────── */
-  color-scheme: dark;
-  --color-bg: var(--dark-color-bg);
-  --color-surface: var(--dark-color-surface);
-  --color-raised: var(--dark-color-raised);
-  --color-overlay: var(--dark-color-overlay);
-  --color-swatch-ground: var(--dark-color-swatch-ground);
-
-  --color-text: var(--dark-color-text);
-  --color-text-soft: var(--dark-color-text-soft);
-  --color-text-muted: var(--dark-color-text-muted);
-
-  --color-accent: var(--dark-color-accent);
-  --color-accent-bright: var(--dark-color-accent-bright);
-  --color-accent-vivid: var(--dark-color-accent-vivid);
-  --color-accent-hover: var(--dark-color-accent-hover);
-  --color-accent-dim: var(--dark-color-accent-dim);
-
-  --color-success: var(--dark-color-success);
-  --color-warn: var(--dark-color-warn);
-  --color-danger: var(--dark-color-danger);
-
-  --color-line: var(--dark-color-line);
-  --color-line-strong: var(--dark-color-line-strong);
-
-  --shadow-card: var(--dark-shadow-card);
-  --shadow-lift: var(--dark-shadow-lift);
-  --shadow-glow: var(--dark-shadow-glow);
+  /* ── Dark Theme Defaults & Centralized Selector ────────────────────────── */
 }
 
-/* Shared Dark Theme Token Rule */
+:root,
 .theme-dark,
 html[data-theme="dark"] {
   color-scheme: dark;

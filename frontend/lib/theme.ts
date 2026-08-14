@@ -32,6 +32,13 @@ export function resolveEffectiveTheme(
 }
 
 /**
+ * Resolves the theme color hex string for meta[name="theme-color"].
+ */
+export function resolveMetaThemeColor(theme: string | null, prefersLight: boolean): string {
+  return isLightTheme(theme, prefersLight) ? THEME_COLOR_LIGHT : THEME_COLOR_DARK;
+}
+
+/**
  * Safely reads stored theme preference from localStorage, handling security exceptions
  * in restricted browser environments (e.g. Safari Private Mode).
  */
@@ -61,12 +68,7 @@ export function updateMetaThemeColor(theme: ThemeMode): void {
   if (!cachedMetaTag) return;
 
   const prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
-  const isLight = isLightTheme(theme, prefersLight);
-
-  cachedMetaTag.setAttribute(
-    "content",
-    isLight ? THEME_COLOR_LIGHT : THEME_COLOR_DARK,
-  );
+  cachedMetaTag.setAttribute("content", resolveMetaThemeColor(theme, prefersLight));
 }
 
 /**
